@@ -128,6 +128,37 @@ header{
     background:#22222c;
 }
 
+.titleInput{
+    background:#1a1a22;
+
+    border:
+    1px solid rgba(255,255,255,0.08);
+
+    padding:12px 16px;
+
+    border-radius:14px;
+
+    color:white;
+
+    font-family:"Inter",sans-serif;
+
+    font-size:14px;
+
+    outline:none;
+
+    transition:0.2s;
+
+    min-width:200px;
+}
+
+.titleInput::placeholder{
+    color:#6c6c82;
+}
+
+.titleInput:focus{
+    border-color:#7c4dff;
+}
+
 .hero{
     padding:70px 24px 40px;
 }
@@ -266,6 +297,12 @@ video{
     line-height:1.4;
 
     word-break:break-word;
+
+    cursor:pointer;
+}
+
+.videoName:hover{
+    color:#b8b8ff;
 }
 
 .videoMeta{
@@ -280,10 +317,6 @@ video{
     color:#88889c;
     font-size:18px;
 }
-
-/* =======================
-   MOBILE
-======================= */
 
 @media(max-width:700px){
 
@@ -308,6 +341,11 @@ video{
     .customFile{
         width:100%;
     }
+
+    .titleInput{
+        width:100%;
+        min-width:0;
+    }
 }
 
 </style>
@@ -321,6 +359,12 @@ NextStream
 </div>
 
 <div class="actions">
+
+<input
+type="text"
+id="titleInput"
+class="titleInput"
+placeholder="動画のタイトル">
 
 <label class="customFile">
 
@@ -453,6 +497,9 @@ async function upload() {
 
             formData.append("fileName", file.name);
 
+            formData.append("title",
+                document.getElementById("titleInput").value.trim() || file.name);
+
             await fetch("/upload-chunk", {
                 method:"POST",
                 body:formData
@@ -487,6 +534,78 @@ async function upload() {
 
         button.style.opacity = "1";
     }
+}
+
+function startEditTitle(el) {
+
+    const filename =
+    el.dataset.filename;
+
+    const current =
+    el.textContent;
+
+    const input =
+    document.createElement("input");
+
+    input.type = "text";
+
+    input.className = "titleInput";
+
+    input.style.width = "100%";
+
+    input.style.padding = "6px 10px";
+
+    input.style.fontSize = "15px";
+
+    input.style.fontWeight = "600";
+
+    input.value = current;
+
+    el.textContent = "";
+
+    el.appendChild(input);
+
+    input.focus();
+
+    input.select();
+
+    async function save() {
+
+        const val =
+        input.value.trim() || current;
+
+        await fetch(
+            "/video/" +
+            encodeURIComponent(filename),
+            {
+                method:"PATCH",
+                headers:{
+                    "Content-Type":
+                    "application/json"
+                },
+                body:JSON.stringify({
+                    title:val
+                })
+            }
+        );
+
+        el.textContent = val;
+    }
+
+    input.addEventListener("blur", save);
+
+    input.addEventListener(
+        "keydown",
+        function(e) {
+            if (e.key === "Enter") {
+                input.blur();
+            }
+
+            if (e.key === "Escape") {
+                el.textContent = current;
+            }
+        }
+    );
 }
 
 async function loadVideos() {
@@ -534,8 +653,8 @@ async function loadVideos() {
 
         <div class="cardBody">
 
-            <div class="videoName">
-                ${video.name}
+            <div class="videoName" data-filename="${video.name}">
+                ${video.title}
             </div>
 
             <div class="videoMeta">
@@ -545,6 +664,16 @@ async function loadVideos() {
         </div>
 
         `;
+
+        const titleEl =
+        div.querySelector(".videoName");
+
+        titleEl.addEventListener(
+            "click",
+            function() {
+                startEditTitle(this);
+            }
+        );
 
         container.appendChild(div);
     });
