@@ -309,6 +309,53 @@ video{
     font-size:13px;
 }
 
+.channelLink{
+    cursor:pointer;
+    font-weight:500;
+    transition:0.2s;
+}
+
+.channelLink:hover{
+    color:#b8b8ff;
+}
+
+.likeBtn{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    background:none;
+    border:none;
+    color:#8c8ca3;
+    cursor:pointer;
+    font-size:13px;
+    padding:4px 0;
+    transition:0.2s;
+}
+
+.likeBtn:hover{
+    color:#ff4d6d;
+}
+
+.likeBtn.liked{
+    color:#ff4d6d;
+}
+
+.likeBtn svg{
+    width:18px;
+    height:18px;
+    transition:0.2s;
+}
+
+.likeBtn.liked svg{
+    fill:#ff4d6d;
+}
+
+.likeBtn:not(.liked) svg{
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2;
+}
+
 .videoTags{
     margin-top:10px;
     display:flex;
@@ -505,7 +552,7 @@ onclick="clearSearch()">
 
 <div class="heroTitle">
 
-次世代の
+シンプルな
 <span>動画共有</span>
 プラットフォーム
 
@@ -518,6 +565,11 @@ onclick="clearSearch()">
 </div>
 
 </section>
+
+<div id="channelHeader" style="display:none;padding:0 24px 16px">
+    <button class="uploadBtn secondary" onclick="clearChannel()">← すべての動画</button>
+    <h2 id="channelName" style="margin:10px 0 0;font-size:24px;font-weight:700"></h2>
+</div>
 
 <div id="videos"></div>
 
@@ -627,6 +679,7 @@ onclick="deleteAccount()">
 
 let currentUser = null;
 let isLoginMode = true;
+let currentChannel = null;
 
 async function checkAuth() {
     try {
@@ -992,90 +1045,10 @@ async function searchVideos() {
     document.getElementById("searchBtn").style.display = "none";
     document.getElementById("clearSearchBtn").style.display = "";
 
-    const container =
-    document.getElementById("videos");
+    document.getElementById("channelHeader").style.display = "none";
+    currentChannel = null;
 
-    container.innerHTML = "";
-
-    if (videos.length === 0) {
-
-        container.innerHTML = `
-        <div class="empty">
-            「${q}」に一致する動画はありません
-        </div>
-        `;
-
-        return;
-    }
-
-    videos.forEach(video => {
-
-        const div =
-        document.createElement("div");
-
-        div.className = "card";
-
-        const tagsHtml = (video.tags || []).length
-            ? `<div class="videoTags" data-filename="${video.name}">${
-                video.tags.map(t =>
-                    `<span class="tag" data-tag="${t}">${t}</span>`
-                ).join("")
-            }</div>`
-            : `<div class="videoTags" data-filename="${video.name}"><span class="tag addTag">+ タグ追加</span></div>`;
-
-        div.innerHTML = `
-
-        <div class="videoWrap">
-
-            <video
-            controls
-            preload="metadata"
-            src="${video.url}">
-            </video>
-
-        </div>
-
-        <div class="cardBody">
-
-            <div class="videoName" data-filename="${video.name}">
-                ${video.title}
-            </div>
-
-            ${tagsHtml}
-
-            <div class="videoMeta">
-                ${video.uploadedBy ? escapeHtml(video.uploadedBy) : "NextStream"}
-            </div>
-
-        </div>
-
-        `;
-
-        const titleEl =
-        div.querySelector(".videoName");
-
-        titleEl.addEventListener(
-            "click",
-            function() {
-                startEditTitle(this);
-            }
-        );
-
-        const tagsEl =
-        div.querySelector(".videoTags");
-
-        tagsEl.addEventListener(
-            "click",
-            function(e) {
-                if (e.target.classList.contains("tag") && !e.target.classList.contains("addTag")) {
-                    return;
-                }
-                startEditTags(this);
-            }
-        );
-
-        container.appendChild(div);
-    });
+    renderVideoList(videos, `「${q}」に一致する動画はありません`);
 }
 
 function clearSearch() {
@@ -1088,35 +1061,17 @@ function clearSearch() {
     loadVideos();
 }
 
-async function loadVideos() {
-
-    const res =
-    await fetch("/list");
-
-    const videos =
-    await res.json();
-
-    const container =
-    document.getElementById("videos");
-
+function renderVideoList(videos, emptyMessage) {
+    const container = document.getElementById("videos");
     container.innerHTML = "";
 
     if (videos.length === 0) {
-
-        container.innerHTML = `
-        <div class="empty">
-            まだ動画がありません
-        </div>
-        `;
-
+        container.innerHTML = `<div class="empty">${emptyMessage}</div>`;
         return;
     }
 
     videos.forEach(video => {
-
-        const div =
-        document.createElement("div");
-
+        const div = document.createElement("div");
         div.className = "card";
 
         const tagsHtml = (video.tags || []).length
@@ -1128,58 +1083,102 @@ async function loadVideos() {
             : `<div class="videoTags" data-filename="${video.name}"><span class="tag addTag">+ タグ追加</span></div>`;
 
         div.innerHTML = `
-
         <div class="videoWrap">
-
             <video
             controls
             preload="metadata"
             src="${video.url}">
             </video>
-
         </div>
-
         <div class="cardBody">
-
             <div class="videoName" data-filename="${video.name}">
                 ${video.title}
             </div>
-
             ${tagsHtml}
-
             <div class="videoMeta">
-                ${video.uploadedBy ? escapeHtml(video.uploadedBy) : "NextStream"}
+                ${video.uploadedBy ? `<span class="channelLink">${escapeHtml(video.uploadedBy)}</span>` : "NextStream"} ·
+                <button class="likeBtn${video.likedByUser ? ' liked' : ''}" data-filename="${video.name}" onclick="toggleLike(this)">
+                    <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    <span class="likeCount">${video.likes || 0}</span>
+                </button>
             </div>
-
         </div>
-
         `;
 
-        const titleEl =
-        div.querySelector(".videoName");
+        const titleEl = div.querySelector(".videoName");
+        titleEl.addEventListener("click", function() {
+            startEditTitle(this);
+        });
 
-        titleEl.addEventListener(
-            "click",
-            function() {
-                startEditTitle(this);
+        const tagsEl = div.querySelector(".videoTags");
+        tagsEl.addEventListener("click", function(e) {
+            if (e.target.classList.contains("tag") && !e.target.classList.contains("addTag")) {
+                return;
             }
-        );
+            startEditTags(this);
+        });
 
-        const tagsEl =
-        div.querySelector(".videoTags");
-
-        tagsEl.addEventListener(
-            "click",
-            function(e) {
-                if (e.target.classList.contains("tag") && !e.target.classList.contains("addTag")) {
-                    return;
-                }
-                startEditTags(this);
-            }
-        );
+        const channelEl = div.querySelector(".channelLink");
+        if (channelEl) {
+            channelEl.addEventListener("click", function(e) {
+                e.stopPropagation();
+                showChannel(video.uploadedBy);
+            });
+        }
 
         container.appendChild(div);
     });
+}
+
+async function showChannel(username) {
+    currentChannel = username;
+
+    document.getElementById("searchBtn").style.display = "";
+    document.getElementById("clearSearchBtn").style.display = "none";
+    document.getElementById("searchInput").value = "";
+
+    const header = document.getElementById("channelHeader");
+    document.getElementById("channelName").textContent = username + " の動画";
+    header.style.display = "block";
+
+    const res = await fetch("/channel/" + encodeURIComponent(username));
+    const videos = await res.json();
+
+    renderVideoList(videos, "このチャンネルにはまだ動画がありません");
+}
+
+function clearChannel() {
+    currentChannel = null;
+    document.getElementById("channelHeader").style.display = "none";
+    loadVideos();
+}
+
+async function loadVideos() {
+
+    document.getElementById("channelHeader").style.display = "none";
+    currentChannel = null;
+
+    const res =
+    await fetch("/list");
+
+    const videos =
+    await res.json();
+
+    renderVideoList(videos, "まだ動画がありません");
+}
+
+async function toggleLike(btn) {
+    const filename = btn.dataset.filename;
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(filename) + "/like", { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+            btn.classList.toggle("liked", data.liked);
+            btn.querySelector(".likeCount").textContent = data.likes;
+        }
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 checkAuth().then(() => loadVideos());

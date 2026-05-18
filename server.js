@@ -270,7 +270,8 @@ app.post("/upload-chunk", requireAuth, upload.single("chunk"), (req, res) => {
                 metadata[safeName] = {
                     title: title || safeName,
                     tags: tagList,
-                    uploadedBy: req.session.userId
+                    uploadedBy: req.session.userId,
+                    likes: []
                 };
                 saveMetadata(metadata);
 
@@ -344,6 +345,39 @@ app.patch("/video/:filename", (req, res) => {
     }
 });
 
+app.post("/api/video/:filename/like", requireAuth, (req, res) => {
+    try {
+        const metadata = loadMetadata();
+        const video = metadata[req.params.filename];
+
+        if (!video) {
+            return res.status(404).json({ success: false, error: "Video not found" });
+        }
+
+        if (!video.likes) {
+            video.likes = [];
+        }
+
+        const userIndex = video.likes.indexOf(req.session.userId);
+        if (userIndex === -1) {
+            video.likes.push(req.session.userId);
+        } else {
+            video.likes.splice(userIndex, 1);
+        }
+
+        saveMetadata(metadata);
+
+        res.json({
+            success: true,
+            liked: userIndex === -1,
+            likes: video.likes.length
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 app.get("/list", (req, res) => {
 
     const files = fs.readdirSync(uploadDir);
@@ -355,11 +389,35 @@ app.get("/list", (req, res) => {
         url: "/videos/" + file,
         title: metadata[file]?.title || file,
         tags: metadata[file]?.tags || [],
-        uploadedBy: metadata[file]?.uploadedBy || null
+        uploadedBy: metadata[file]?.uploadedBy || null,
+        likes: metadata[file]?.likes?.length || 0,
+        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false
     }));
 
     videos.reverse();
 
+    res.json(videos);
+});
+
+app.get("/channel/:username", (req, res) => {
+    const username = req.params.username;
+    const files = fs.readdirSync(uploadDir);
+    const metadata = loadMetadata();
+
+    const videos = files.filter(file => {
+        const meta = metadata[file];
+        return meta && meta.uploadedBy === username;
+    }).map(file => ({
+        name: file,
+        url: "/videos/" + file,
+        title: metadata[file]?.title || file,
+        tags: metadata[file]?.tags || [],
+        uploadedBy: metadata[file]?.uploadedBy || null,
+        likes: metadata[file]?.likes?.length || 0,
+        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false
+    }));
+
+    videos.reverse();
     res.json(videos);
 });
 
@@ -383,7 +441,9 @@ app.get("/search", (req, res) => {
         url: "/videos/" + file,
         title: metadata[file]?.title || file,
         tags: metadata[file]?.tags || [],
-        uploadedBy: metadata[file]?.uploadedBy || null
+        uploadedBy: metadata[file]?.uploadedBy || null,
+        likes: metadata[file]?.likes?.length || 0,
+        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false
     }));
 
     results.reverse();
