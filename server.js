@@ -13,10 +13,6 @@ app.use(express.urlencoded({
     limit: "1gb"
 }));
 
-// ======================
-// フォルダ作成
-// ======================
-
 const uploadDir = path.join(__dirname, "uploads");
 const tempDir = path.join(__dirname, "temp");
 const chunksDir = path.join(__dirname, "chunks");
@@ -27,16 +23,8 @@ const chunksDir = path.join(__dirname, "chunks");
     }
 });
 
-// ======================
-// static
-// ======================
-
 app.use("/videos", express.static(uploadDir));
 app.use(express.static("public"));
-
-// ======================
-// multer
-// ======================
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -55,10 +43,6 @@ const upload = multer({
         fileSize: 10 * 1024 * 1024
     }
 });
-
-// ======================
-// chunk upload
-// ======================
 
 app.post("/upload-chunk", upload.single("chunk"), (req, res) => {
 
@@ -83,7 +67,6 @@ app.post("/upload-chunk", upload.single("chunk"), (req, res) => {
 
         const uploadedChunks = fs.readdirSync(dir);
 
-        // 全チャンク受信
         if (uploadedChunks.length == totalChunks) {
 
             const safeName =
@@ -132,10 +115,6 @@ app.post("/upload-chunk", upload.single("chunk"), (req, res) => {
     }
 });
 
-// ======================
-// 動画一覧
-// ======================
-
 app.get("/list", (req, res) => {
 
     const files = fs.readdirSync(uploadDir);
@@ -149,10 +128,6 @@ app.get("/list", (req, res) => {
 
     res.json(videos);
 });
-
-// ======================
-// 起動
-// ======================
 
 app.listen(PORT, () => {
     console.log(`http://localhost:${PORT}`);
