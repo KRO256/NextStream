@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>アップロード - NextStream</title>
+
+<link
+rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link
+rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+rel="stylesheet">
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:"Inter",sans-serif;
+    background:#0b0b0f;
+    color:white;
+}
+
+header{
+    position:sticky;
+    top:0;
+    z-index:100;
+
+    backdrop-filter:blur(18px);
+
+    background:rgba(10,10,15,0.75);
+
+    border-bottom:
+    1px solid rgba(255,255,255,0.08);
+
+    padding:16px 24px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+}
+
+.logo{
+    font-size:26px;
+    font-weight:700;
+
+    background:linear-gradient(
+        90deg,
+        #7c4dff,
+        #00d4ff
+    );
+
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+
+.actions{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.uploadBtn{
+    background:linear-gradient(
+        135deg,
+        #7c4dff,
+        #5b7cff
+    );
+
+    border:none;
+    color:white;
+
+    padding:12px 18px;
+
+    border-radius:14px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:0.2s;
+}
+
+.uploadBtn:hover{
+    transform:translateY(-2px);
+    opacity:0.9;
+}
+
+.fileInput{
+    display:none;
+}
+
+.customFile{
+    background:#1a1a22;
+
+    border:
+    1px solid rgba(255,255,255,0.08);
+
+    padding:12px 16px;
+
+    border-radius:14px;
+
+    cursor:pointer;
+
+    transition:0.2s;
+}
+
+.customFile:hover{
+    background:#22222c;
+}
+
+.titleInput{
+    background:#1a1a22;
+
+    border:
+    1px solid rgba(255,255,255,0.08);
+
+    padding:12px 16px;
+
+    border-radius:14px;
+
+    color:white;
+
+    font-family:"Inter",sans-serif;
+
+    font-size:14px;
+
+    outline:none;
+
+    transition:0.2s;
+
+    min-width:200px;
+}
+
+.titleInput::placeholder{
+    color:#6c6c82;
+}
+
+.titleInput:focus{
+    border-color:#7c4dff;
+}
+
+.hero{
+    padding:70px 24px 40px;
+}
+
+.heroTitle{
+    font-size:52px;
+    font-weight:800;
+
+    line-height:1.05;
+
+    max-width:850px;
+}
+
+.heroTitle span{
+    background:linear-gradient(
+        90deg,
+        #7c4dff,
+        #00d4ff
+    );
+
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+
+.heroSub{
+    margin-top:20px;
+    color:#a0a0b5;
+    font-size:18px;
+    max-width:700px;
+}
+
+.progressWrap{
+    margin-top:24px;
+    width:100%;
+    max-width:500px;
+}
+
+.progressBar{
+    width:100%;
+    height:14px;
+
+    background:#1a1a22;
+
+    border-radius:999px;
+
+    overflow:hidden;
+}
+
+.progressFill{
+    width:0%;
+    height:100%;
+
+    background:linear-gradient(
+        90deg,
+        #7c4dff,
+        #00d4ff
+    );
+
+    transition:0.2s;
+}
+
+.progressText{
+    margin-top:10px;
+    color:#b8b8c7;
+}
+
+.uploadForm{
+    margin-top:32px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    max-width:500px;
+}
+
+@media(max-width:850px){
+
+    .heroTitle{
+        font-size:38px;
+    }
+
+    header{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .actions{
+        width:100%;
+        flex-wrap:wrap;
+    }
+
+    .uploadBtn{
+        width:100%;
+    }
+
+    .customFile{
+        width:100%;
+    }
+
+    .titleInput{
+        width:100%;
+        min-width:0;
+    }
+}
+
+</style>
+</head>
+<body>
+
+<header>
+
+<div class="logo">
+NextStream
+</div>
+
+<div class="actions">
+
+<a
+href="/"
+class="uploadBtn"
+style="text-decoration:none;background:linear-gradient(135deg,#555,#777)">
+← ホーム
+</a>
+
+</div>
+
+</header>
+
+<section class="hero">
+
+<div class="heroTitle">
+動画を<span>アップロード</span>
+</div>
+
+<div class="heroSub">
+タイトルとタグを入力して、動画をアップロード
+</div>
+
+<div class="uploadForm">
+
+<input
+type="text"
+id="titleInput"
+class="titleInput"
+placeholder="動画のタイトル">
+
+<input
+type="text"
+id="tagsInput"
+class="titleInput"
+placeholder="タグ（カンマ区切り）">
+
+<label class="customFile">
+
+動画を選択
+
+<input
+type="file"
+id="file"
+class="fileInput"
+accept="video/*">
+
+</label>
+
+<button
+id="uploadBtn"
+class="uploadBtn"
+onclick="upload()">
+
+アップロード
+
+</button>
+
+</div>
+
+<div class="progressWrap">
+
+<div class="progressBar">
+<div
+class="progressFill"
+id="progressFill">
+</div>
+</div>
+
+<div
+class="progressText"
+id="progressText">
+
+待機中
+
+</div>
+
+</div>
+
+</section>
+
+<script>
+
+async function upload() {
+
+    const button =
+    document.getElementById("uploadBtn");
+
+    button.disabled = true;
+
+    button.style.opacity = "0.5";
+
+    const file =
+    document.getElementById("file").files[0];
+
+    if (!file) {
+
+        button.disabled = false;
+
+        button.style.opacity = "1";
+
+        alert("動画を選択してください");
+
+        return;
+    }
+
+    const titleVal = document.getElementById("titleInput").value.trim() || file.name;
+    if (titleVal.length > 100) {
+        alert("タイトルは100文字以内で入力してください");
+        button.disabled = false;
+        button.style.opacity = "1";
+        return;
+    }
+
+    const tagRaw = document.getElementById("tagsInput").value.trim();
+    const tagList = tagRaw ? tagRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
+    if (tagList.some(t => t.length > 20)) {
+        alert("各タグは20文字以内で入力してください");
+        button.disabled = false;
+        button.style.opacity = "1";
+        return;
+    }
+    if (tagList.length > 10) {
+        alert("タグは最大10個までです");
+        button.disabled = false;
+        button.style.opacity = "1";
+        return;
+    }
+
+    try {
+
+        const chunkSize =
+        5 * 1024 * 1024;
+
+        const totalChunks =
+        Math.ceil(file.size / chunkSize);
+
+        const fileId =
+        Date.now().toString();
+
+        const fill =
+        document.getElementById("progressFill");
+
+        const text =
+        document.getElementById("progressText");
+
+        for (let i = 0; i < totalChunks; i++) {
+
+            const start =
+            i * chunkSize;
+
+            const end =
+            start + chunkSize;
+
+            const chunk =
+            file.slice(start, end);
+
+            const formData =
+            new FormData();
+
+            formData.append("chunk", chunk);
+
+            formData.append("fileId", fileId);
+
+            formData.append("chunkIndex", i);
+
+            formData.append("totalChunks", totalChunks);
+
+            formData.append("fileName", file.name);
+
+            formData.append("title", titleVal);
+
+            formData.append("tags", tagRaw);
+
+            await fetch("/upload-chunk", {
+                method:"POST",
+                body:formData
+            });
+
+            const percent =
+            Math.floor(
+                ((i + 1) / totalChunks) * 100
+            );
+
+            fill.style.width =
+            percent + "%";
+
+            text.innerText =
+            `アップロード中 ${percent}%`;
+        }
+
+        text.innerText =
+        "アップロード完了";
+
+    } catch(err) {
+
+        console.error(err);
+
+        alert("アップロード失敗");
+
+    } finally {
+
+        button.disabled = false;
+
+        button.style.opacity = "1";
+    }
+}
+
+</script>
+
+</body>
+</html>

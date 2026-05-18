@@ -66,7 +66,8 @@ app.post("/upload-chunk", upload.single("chunk"), (req, res) => {
             chunkIndex,
             totalChunks,
             fileName,
-            title
+            title,
+            tags
         } = req.body;
 
         const dir = path.join(chunksDir, fileId);
@@ -111,7 +112,21 @@ app.post("/upload-chunk", upload.single("chunk"), (req, res) => {
                 });
 
                 const metadata = loadMetadata();
-                metadata[safeName] = { title: title || safeName };
+
+                if (title && title.length > 100) {
+                    return res.status(400).json({ success: false, error: "タイトルは100文字以内で入力してください" });
+                }
+
+                const tagList = tags
+                    ? tags.split(",").map(t => t.trim()).filter(Boolean)
+                    : [];
+                if (tagList.some(t => t.length > 20)) {
+                    return res.status(400).json({ success: false, error: "各タグは20文字以内で入力してください" });
+                }
+                if (tagList.length > 10) {
+                    return res.status(400).json({ success: false, error: "タグは最大10個までです" });
+                }
+                metadata[safeName] = { title: title || safeName, tags: tagList };
                 saveMetadata(metadata);
 
                 console.log("UPLOAD COMPLETE:", safeName);
@@ -137,13 +152,31 @@ app.patch("/video/:filename", (req, res) => {
 
     try {
 
-        const { title } = req.body;
+        const { title, tags } = req.body;
 
         const metadata = loadMetadata();
 
         if (metadata[req.params.filename]) {
 
-            metadata[req.params.filename].title = title;
+            if (title !== undefined) {
+                if (title.length > 100) {
+                    return res.status(400).json({ success: false, error: "タイトルは100文字以内で入力してください" });
+                }
+                metadata[req.params.filename].title = title;
+            }
+
+            if (tags !== undefined) {
+                const tagList = Array.isArray(tags)
+                    ? tags
+                    : tags.split(",").map(t => t.trim()).filter(Boolean);
+                if (tagList.some(t => t.length > 20)) {
+                    return res.status(400).json({ success: false, error: "各タグは20文字以内で入力してください" });
+                }
+                if (tagList.length > 10) {
+                    return res.status(400).json({ success: false, error: "タグは最大10個までです" });
+                }
+                metadata[req.params.filename].tags = tagList;
+            }
 
             saveMetadata(metadata);
 
@@ -175,12 +208,39 @@ app.get("/list", (req, res) => {
     const videos = files.map(file => ({
         name: file,
         url: "/videos/" + file,
-        title: metadata[file]?.title || file
+        title: metadata[file]?.title || file,
+        tags: metadata[file]?.tags || []
     }));
 
     videos.reverse();
 
     res.json(videos);
+});
+
+app.get("/search", (req, res) => {
+
+    const q = (req.query.q || "").toLowerCase().trim();
+
+    if (!q) {
+        return res.json([]);
+    }
+
+    const files = fs.readdirSync(uploadDir);
+    const metadata = loadMetadata();
+
+    const results = files.filter(file => {
+        const meta = metadata[file];
+        if (!meta || !meta.tags) return false;
+        return meta.tags.some(tag => tag.toLowerCase().includes(q));
+    }).map(file => ({
+        name: file,
+        url: "/videos/" + file,
+        title: metadata[file]?.title || file,
+        tags: metadata[file]?.tags || []
+    }));
+
+    results.reverse();
+    res.json(results);
 });
 
 app.listen(PORT, () => {

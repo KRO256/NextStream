@@ -311,6 +311,57 @@ video{
     font-size:13px;
 }
 
+.videoTags{
+    margin-top:10px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+}
+
+.tag{
+    display:inline-block;
+    background:rgba(124,77,255,0.15);
+    color:#b8b8ff;
+    font-size:11px;
+    font-weight:500;
+    padding:4px 10px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.tag:hover{
+    background:rgba(124,77,255,0.3);
+}
+
+.tag.addTag{
+    background:rgba(255,255,255,0.06);
+    color:#8c8ca3;
+    font-size:11px;
+}
+
+.tag.addTag:hover{
+    background:rgba(255,255,255,0.12);
+    color:#ccc;
+}
+
+.tagEditInput{
+    background:#1a1a22;
+    border:1px solid rgba(255,255,255,0.08);
+    padding:4px 10px;
+    border-radius:999px;
+    color:white;
+    font-family:"Inter",sans-serif;
+    font-size:11px;
+    outline:none;
+    width:160px;
+    transition:0.2s;
+}
+
+.tagEditInput:focus{
+    border-color:#7c4dff;
+}
+
 .empty{
     padding:80px 20px;
     text-align:center;
@@ -318,7 +369,7 @@ video{
     font-size:18px;
 }
 
-@media(max-width:700px){
+@media(max-width:850px){
 
     .heroTitle{
         font-size:38px;
@@ -362,30 +413,37 @@ NextStream
 
 <input
 type="text"
-id="titleInput"
+id="searchInput"
 class="titleInput"
-placeholder="動画のタイトル">
-
-<label class="customFile">
-
-動画を選択
-
-<input
-type="file"
-id="file"
-class="fileInput"
-accept="video/*">
-
-</label>
+placeholder="タグで検索">
 
 <button
-id="uploadBtn"
+id="searchBtn"
 class="uploadBtn"
-onclick="upload()">
+onclick="searchVideos()">
 
-アップロード
+検索
 
 </button>
+
+<button
+id="clearSearchBtn"
+class="uploadBtn"
+style="display:none;background:linear-gradient(135deg,#555,#777)"
+onclick="clearSearch()">
+
+× クリア
+
+</button>
+
+<a
+href="/upload.html"
+class="uploadBtn"
+style="text-decoration:none;">
+
+＋ アップロード
+
+</a>
 
 </div>
 
@@ -408,133 +466,11 @@ Node.jsだけで動く、
 
 </div>
 
-<div class="progressWrap">
-
-<div class="progressBar">
-<div
-class="progressFill"
-id="progressFill">
-</div>
-</div>
-
-<div
-class="progressText"
-id="progressText">
-
-待機中
-
-</div>
-
-</div>
-
 </section>
 
 <div id="videos"></div>
 
 <script>
-
-async function upload() {
-
-    const button =
-    document.getElementById("uploadBtn");
-
-    button.disabled = true;
-
-    button.style.opacity = "0.5";
-
-    const file =
-    document.getElementById("file").files[0];
-
-    if (!file) {
-
-        button.disabled = false;
-
-        button.style.opacity = "1";
-
-        alert("動画を選択してください");
-
-        return;
-    }
-
-    try {
-
-        const chunkSize =
-        5 * 1024 * 1024;
-
-        const totalChunks =
-        Math.ceil(file.size / chunkSize);
-
-        const fileId =
-        Date.now().toString();
-
-        const fill =
-        document.getElementById("progressFill");
-
-        const text =
-        document.getElementById("progressText");
-
-        for (let i = 0; i < totalChunks; i++) {
-
-            const start =
-            i * chunkSize;
-
-            const end =
-            start + chunkSize;
-
-            const chunk =
-            file.slice(start, end);
-
-            const formData =
-            new FormData();
-
-            formData.append("chunk", chunk);
-
-            formData.append("fileId", fileId);
-
-            formData.append("chunkIndex", i);
-
-            formData.append("totalChunks", totalChunks);
-
-            formData.append("fileName", file.name);
-
-            formData.append("title",
-                document.getElementById("titleInput").value.trim() || file.name);
-
-            await fetch("/upload-chunk", {
-                method:"POST",
-                body:formData
-            });
-
-            const percent =
-            Math.floor(
-                ((i + 1) / totalChunks) * 100
-            );
-
-            fill.style.width =
-            percent + "%";
-
-            text.innerText =
-            `アップロード中 ${percent}%`;
-        }
-
-        text.innerText =
-        "アップロード完了";
-
-        loadVideos();
-
-    } catch(err) {
-
-        console.error(err);
-
-        alert("アップロード失敗");
-
-    } finally {
-
-        button.disabled = false;
-
-        button.style.opacity = "1";
-    }
-}
 
 function startEditTitle(el) {
 
@@ -574,6 +510,12 @@ function startEditTitle(el) {
         const val =
         input.value.trim() || current;
 
+        if (val.length > 100) {
+            alert("タイトルは100文字以内で入力してください");
+            input.focus();
+            return;
+        }
+
         await fetch(
             "/video/" +
             encodeURIComponent(filename),
@@ -608,6 +550,223 @@ function startEditTitle(el) {
     );
 }
 
+function startEditTags(el) {
+
+    const filename =
+    el.dataset.filename;
+
+    const current =
+    el.querySelector(".tag.addTag")
+        ? []
+        : [...el.querySelectorAll(".tag:not(.addTag)")].map(
+            t => t.dataset.tag
+        );
+
+    const input =
+    document.createElement("input");
+
+    input.type = "text";
+
+    input.className = "tagEditInput";
+
+    input.value = current.join(", ");
+
+    input.placeholder = "タグをカンマ区切り";
+
+    el.innerHTML = "";
+
+    el.appendChild(input);
+
+    input.focus();
+
+    input.select();
+
+    async function save() {
+
+        const val =
+        input.value.trim();
+
+        const tagList = val
+            ? val.split(",").map(t => t.trim()).filter(Boolean)
+            : [];
+
+        if (tagList.some(t => t.length > 20)) {
+            alert("各タグは20文字以内で入力してください");
+            input.focus();
+            return;
+        }
+        if (tagList.length > 10) {
+            alert("タグは最大10個までです");
+            input.focus();
+            return;
+        }
+
+        await fetch(
+            "/video/" +
+            encodeURIComponent(filename),
+            {
+                method:"PATCH",
+                headers:{
+                    "Content-Type":
+                    "application/json"
+                },
+                body:JSON.stringify({
+                    tags:tagList
+                })
+            }
+        );
+
+        if (tagList.length) {
+            el.innerHTML = tagList.map(t =>
+                `<span class="tag" data-tag="${t}">${t}</span>`
+            ).join("");
+        } else {
+            el.innerHTML =
+            `<span class="tag addTag">+ タグ追加</span>`;
+        }
+    }
+
+    input.addEventListener("blur", save);
+
+    input.addEventListener(
+        "keydown",
+        function(e) {
+            if (e.key === "Enter") {
+                input.blur();
+            }
+
+            if (e.key === "Escape") {
+                const currentTags = current.join(", ");
+                if (currentTags) {
+                    el.innerHTML = current.map(t =>
+                        `<span class="tag" data-tag="${t}">${t}</span>`
+                    ).join("");
+                } else {
+                    el.innerHTML =
+                    `<span class="tag addTag">+ タグ追加</span>`;
+                }
+            }
+        }
+    );
+}
+
+async function searchVideos() {
+
+    const q =
+    document.getElementById("searchInput").value.trim();
+
+    if (!q) {
+
+        loadVideos();
+
+        return;
+    }
+
+    const res =
+    await fetch("/search?q=" + encodeURIComponent(q));
+
+    const videos =
+    await res.json();
+
+    document.getElementById("searchBtn").style.display = "none";
+    document.getElementById("clearSearchBtn").style.display = "";
+
+    const container =
+    document.getElementById("videos");
+
+    container.innerHTML = "";
+
+    if (videos.length === 0) {
+
+        container.innerHTML = `
+        <div class="empty">
+            「${q}」に一致する動画はありません
+        </div>
+        `;
+
+        return;
+    }
+
+    videos.forEach(video => {
+
+        const div =
+        document.createElement("div");
+
+        div.className = "card";
+
+        const tagsHtml = (video.tags || []).length
+            ? `<div class="videoTags" data-filename="${video.name}">${
+                video.tags.map(t =>
+                    `<span class="tag" data-tag="${t}">${t}</span>`
+                ).join("")
+            }</div>`
+            : `<div class="videoTags" data-filename="${video.name}"><span class="tag addTag">+ タグ追加</span></div>`;
+
+        div.innerHTML = `
+
+        <div class="videoWrap">
+
+            <video
+            controls
+            preload="metadata"
+            src="${video.url}">
+            </video>
+
+        </div>
+
+        <div class="cardBody">
+
+            <div class="videoName" data-filename="${video.name}">
+                ${video.title}
+            </div>
+
+            ${tagsHtml}
+
+            <div class="videoMeta">
+                NextStream
+            </div>
+
+        </div>
+
+        `;
+
+        const titleEl =
+        div.querySelector(".videoName");
+
+        titleEl.addEventListener(
+            "click",
+            function() {
+                startEditTitle(this);
+            }
+        );
+
+        const tagsEl =
+        div.querySelector(".videoTags");
+
+        tagsEl.addEventListener(
+            "click",
+            function(e) {
+                if (e.target.classList.contains("tag") && !e.target.classList.contains("addTag")) {
+                    return;
+                }
+                startEditTags(this);
+            }
+        );
+
+        container.appendChild(div);
+    });
+}
+
+function clearSearch() {
+
+    document.getElementById("searchInput").value = "";
+
+    document.getElementById("searchBtn").style.display = "";
+    document.getElementById("clearSearchBtn").style.display = "none";
+
+    loadVideos();
+}
+
 async function loadVideos() {
 
     const res =
@@ -639,6 +798,14 @@ async function loadVideos() {
 
         div.className = "card";
 
+        const tagsHtml = (video.tags || []).length
+            ? `<div class="videoTags" data-filename="${video.name}">${
+                video.tags.map(t =>
+                    `<span class="tag" data-tag="${t}">${t}</span>`
+                ).join("")
+            }</div>`
+            : `<div class="videoTags" data-filename="${video.name}"><span class="tag addTag">+ タグ追加</span></div>`;
+
         div.innerHTML = `
 
         <div class="videoWrap">
@@ -657,6 +824,8 @@ async function loadVideos() {
                 ${video.title}
             </div>
 
+            ${tagsHtml}
+
             <div class="videoMeta">
                 NextStream
             </div>
@@ -672,6 +841,19 @@ async function loadVideos() {
             "click",
             function() {
                 startEditTitle(this);
+            }
+        );
+
+        const tagsEl =
+        div.querySelector(".videoTags");
+
+        tagsEl.addEventListener(
+            "click",
+            function(e) {
+                if (e.target.classList.contains("tag") && !e.target.classList.contains("addTag")) {
+                    return;
+                }
+                startEditTags(this);
             }
         );
 
