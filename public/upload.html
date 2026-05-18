@@ -101,6 +101,10 @@ header{
     opacity:0.9;
 }
 
+.uploadBtn.secondary{
+    background:linear-gradient(135deg,#555,#777);
+}
+
 .fileInput{
     display:none;
 }
@@ -229,6 +233,12 @@ header{
     max-width:500px;
 }
 
+.userName{
+    color:#b8b8ff;
+    font-weight:600;
+    font-size:14px;
+}
+
 @media(max-width:850px){
 
     .heroTitle{
@@ -273,10 +283,12 @@ NextStream
 
 <a
 href="/"
-class="uploadBtn"
-style="text-decoration:none;background:linear-gradient(135deg,#555,#777)">
+class="uploadBtn secondary"
+style="text-decoration:none">
 ← ホーム
 </a>
+
+<span class="userName" id="userNameDisplay"></span>
 
 </div>
 
@@ -351,6 +363,23 @@ id="progressText">
 </section>
 
 <script>
+
+let currentUser = null;
+
+async function checkAuth() {
+    try {
+        const res = await fetch("/api/me");
+        const data = await res.json();
+        if (data.success && data.user) {
+            currentUser = data.user;
+            document.getElementById("userNameDisplay").textContent = data.user;
+        } else {
+            window.location.href = "/";
+        }
+    } catch (e) {
+        window.location.href = "/";
+    }
+}
 
 async function upload() {
 
@@ -443,10 +472,15 @@ async function upload() {
 
             formData.append("tags", tagRaw);
 
-            await fetch("/upload-chunk", {
+            const res = await fetch("/upload-chunk", {
                 method:"POST",
                 body:formData
             });
+
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || "アップロード失敗");
+            }
 
             const percent =
             Math.floor(
@@ -467,7 +501,7 @@ async function upload() {
 
         console.error(err);
 
-        alert("アップロード失敗");
+        alert(err.message || "アップロード失敗");
 
     } finally {
 
@@ -476,6 +510,8 @@ async function upload() {
         button.style.opacity = "1";
     }
 }
+
+checkAuth();
 
 </script>
 

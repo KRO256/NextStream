@@ -35,10 +35,6 @@ body{
     color:white;
 }
 
-/* =======================
-   HEADER
-======================= */
-
 header{
     position:sticky;
     top:0;
@@ -80,6 +76,10 @@ header{
 }
 
 .uploadBtn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+
     background:linear-gradient(
         135deg,
         #7c4dff,
@@ -98,11 +98,21 @@ header{
     cursor:pointer;
 
     transition:0.2s;
+
+    text-decoration:none;
 }
 
 .uploadBtn:hover{
     transform:translateY(-2px);
     opacity:0.9;
+}
+
+.uploadBtn.danger{
+    background:linear-gradient(135deg,#e53935,#c62828);
+}
+
+.uploadBtn.secondary{
+    background:linear-gradient(135deg,#555,#777);
 }
 
 .fileInput{
@@ -190,10 +200,6 @@ header{
     max-width:700px;
 }
 
-/* =======================
-   PROGRESS
-======================= */
-
 .progressWrap{
     margin-top:24px;
     width:100%;
@@ -229,10 +235,6 @@ header{
     color:#b8b8c7;
 }
 
-/* =======================
-   GRID
-======================= */
-
 #videos{
     padding:10px 24px 60px;
 
@@ -243,10 +245,6 @@ header{
 
     gap:28px;
 }
-
-/* =======================
-   CARD
-======================= */
 
 .card{
     background:
@@ -369,6 +367,58 @@ video{
     font-size:18px;
 }
 
+.modalOverlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.7);
+    z-index:200;
+    align-items:center;
+    justify-content:center;
+}
+
+.modalOverlay.active{
+    display:flex;
+}
+
+.modal{
+    background:#16161e;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:24px;
+    padding:32px;
+    width:100%;
+    max-width:400px;
+}
+
+.modal h2{
+    margin:0 0 20px;
+    font-size:24px;
+}
+
+.modal .titleInput{
+    width:100%;
+    margin-bottom:12px;
+    min-width:0;
+}
+
+.modal .actions{
+    margin-top:20px;
+    justify-content:flex-end;
+}
+
+.userMenu{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+}
+
+.userName{
+    color:#b8b8ff;
+    font-weight:600;
+    font-size:14px;
+}
+
 @media(max-width:850px){
 
     .heroTitle{
@@ -389,6 +439,10 @@ video{
         width:100%;
     }
 
+    .userMenu .uploadBtn{
+        width:auto;
+    }
+
     .customFile{
         width:100%;
     }
@@ -396,6 +450,10 @@ video{
     .titleInput{
         width:100%;
         min-width:0;
+    }
+
+    .userMenu{
+        width:100%;
     }
 }
 
@@ -428,22 +486,16 @@ onclick="searchVideos()">
 
 <button
 id="clearSearchBtn"
-class="uploadBtn"
-style="display:none;background:linear-gradient(135deg,#555,#777)"
+class="uploadBtn secondary"
+style="display:none"
 onclick="clearSearch()">
 
 × クリア
 
 </button>
 
-<a
-href="/upload.html"
-class="uploadBtn"
-style="text-decoration:none;">
-
-＋ アップロード
-
-</a>
+<div id="authArea">
+</div>
 
 </div>
 
@@ -461,8 +513,7 @@ style="text-decoration:none;">
 
 <div class="heroSub">
 
-Node.jsだけで動く、
-モダンUIのシンプルな動画投稿サイト
+シンプルな動画投稿サイト
 
 </div>
 
@@ -470,7 +521,277 @@ Node.jsだけで動く、
 
 <div id="videos"></div>
 
+<div class="modalOverlay" id="authModal">
+
+<div class="modal">
+
+<h2 id="authModalTitle">ログイン</h2>
+
+<input
+type="text"
+id="authUsername"
+class="titleInput"
+placeholder="ユーザー名">
+
+<input
+type="password"
+id="authPassword"
+class="titleInput"
+placeholder="パスワード">
+
+<div id="authError" style="color:#e53935;font-size:13px;margin-top:8px;display:none"></div>
+
+<div class="actions">
+
+<button
+class="uploadBtn secondary"
+onclick="closeAuthModal()">
+
+キャンセル
+
+</button>
+
+<button
+id="authSubmitBtn"
+class="uploadBtn"
+onclick="submitAuth()">
+
+ログイン
+
+</button>
+
+</div>
+
+<div style="margin-top:16px;text-align:center;font-size:13px;color:#8c8ca3">
+
+<span id="authToggleText">アカウントをお持ちでない方</span>
+
+<button
+style="background:none;border:none;color:#7c4dff;cursor:pointer;font-size:13px;text-decoration:underline;padding:0;margin-left:4px"
+onclick="toggleAuthMode()">
+
+<span id="authToggleLink">新規登録</span>
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="modalOverlay" id="deleteModal">
+
+<div class="modal">
+
+<h2>アカウント削除</h2>
+
+<p style="color:#a0a0b5;font-size:14px;margin:0 0 16px">
+アカウントを削除すると、すべての動画とデータが失われます。この操作は取り消せません。
+</p>
+
+<input
+type="password"
+id="deletePassword"
+class="titleInput"
+placeholder="パスワードを入力"
+style="width:100%;min-width:0">
+
+<div id="deleteError" style="color:#e53935;font-size:13px;margin-top:8px;display:none"></div>
+
+<div class="actions">
+
+<button
+class="uploadBtn secondary"
+onclick="closeDeleteModal()">
+
+キャンセル
+
+</button>
+
+<button
+class="uploadBtn danger"
+onclick="deleteAccount()">
+
+削除する
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
 <script>
+
+let currentUser = null;
+let isLoginMode = true;
+
+async function checkAuth() {
+    try {
+        const res = await fetch("/api/me");
+        const data = await res.json();
+        if (data.success && data.user) {
+            currentUser = data.user;
+        }
+    } catch (e) {
+        console.error(e);
+    }
+    renderAuthArea();
+}
+
+function renderAuthArea() {
+    const area = document.getElementById("authArea");
+    if (currentUser) {
+        area.innerHTML = `
+            <a href="/upload.html" class="uploadBtn">＋ アップロード</a>
+            <div class="userMenu">
+                <span class="userName">${escapeHtml(currentUser)}</span>
+                <button class="uploadBtn secondary" onclick="logout()">ログアウト</button>
+                <button class="uploadBtn danger" onclick="openDeleteModal()" style="padding:8px 12px;font-size:12px">削除</button>
+            </div>
+        `;
+    } else {
+        area.innerHTML = `
+            <button class="uploadBtn" onclick="openAuthModal()">ログイン</button>
+        `;
+    }
+}
+
+function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function openAuthModal() {
+    isLoginMode = true;
+    document.getElementById("authModalTitle").textContent = "ログイン";
+    document.getElementById("authSubmitBtn").textContent = "ログイン";
+    document.getElementById("authToggleText").textContent = "アカウントをお持ちでない方";
+    document.getElementById("authToggleLink").textContent = "新規登録";
+    document.getElementById("authUsername").value = "";
+    document.getElementById("authPassword").value = "";
+    document.getElementById("authError").style.display = "none";
+    document.getElementById("authModal").classList.add("active");
+    document.getElementById("authUsername").focus();
+}
+
+function closeAuthModal() {
+    document.getElementById("authModal").classList.remove("active");
+}
+
+function toggleAuthMode() {
+    isLoginMode = !isLoginMode;
+    if (isLoginMode) {
+        document.getElementById("authModalTitle").textContent = "ログイン";
+        document.getElementById("authSubmitBtn").textContent = "ログイン";
+        document.getElementById("authToggleText").textContent = "アカウントをお持ちでない方";
+        document.getElementById("authToggleLink").textContent = "新規登録";
+    } else {
+        document.getElementById("authModalTitle").textContent = "新規登録";
+        document.getElementById("authSubmitBtn").textContent = "登録";
+        document.getElementById("authToggleText").textContent = "既にアカウントをお持ちの方";
+        document.getElementById("authToggleLink").textContent = "ログイン";
+    }
+    document.getElementById("authError").style.display = "none";
+}
+
+async function submitAuth() {
+    const username = document.getElementById("authUsername").value.trim();
+    const password = document.getElementById("authPassword").value;
+    const errorEl = document.getElementById("authError");
+
+    if (!username || !password) {
+        errorEl.textContent = "ユーザー名とパスワードを入力してください";
+        errorEl.style.display = "block";
+        return;
+    }
+
+    const endpoint = isLoginMode ? "/api/login" : "/api/register";
+
+    try {
+        const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            currentUser = data.user;
+            renderAuthArea();
+            closeAuthModal();
+        } else {
+            errorEl.textContent = data.error || "エラーが発生しました";
+            errorEl.style.display = "block";
+        }
+    } catch (e) {
+        errorEl.textContent = "通信エラーが発生しました";
+        errorEl.style.display = "block";
+    }
+}
+
+async function logout() {
+    await fetch("/api/logout", { method: "POST" });
+    currentUser = null;
+    renderAuthArea();
+}
+
+function openDeleteModal() {
+    document.getElementById("deletePassword").value = "";
+    document.getElementById("deleteError").style.display = "none";
+    document.getElementById("deleteModal").classList.add("active");
+}
+
+function closeDeleteModal() {
+    document.getElementById("deleteModal").classList.remove("active");
+}
+
+async function deleteAccount() {
+    const password = document.getElementById("deletePassword").value;
+    const errorEl = document.getElementById("deleteError");
+
+    if (!password) {
+        errorEl.textContent = "パスワードを入力してください";
+        errorEl.style.display = "block";
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/account", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            currentUser = null;
+            renderAuthArea();
+            closeDeleteModal();
+        } else {
+            errorEl.textContent = data.error || "エラーが発生しました";
+            errorEl.style.display = "block";
+        }
+    } catch (e) {
+        errorEl.textContent = "通信エラーが発生しました";
+        errorEl.style.display = "block";
+    }
+}
+
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+        closeAuthModal();
+        closeDeleteModal();
+    }
+    if (e.key === "Enter") {
+        if (document.getElementById("authModal").classList.contains("active")) {
+            submitAuth();
+        }
+    }
+});
 
 function startEditTitle(el) {
 
@@ -723,7 +1044,7 @@ async function searchVideos() {
             ${tagsHtml}
 
             <div class="videoMeta">
-                NextStream
+                ${video.uploadedBy ? escapeHtml(video.uploadedBy) : "NextStream"}
             </div>
 
         </div>
@@ -827,7 +1148,7 @@ async function loadVideos() {
             ${tagsHtml}
 
             <div class="videoMeta">
-                NextStream
+                ${video.uploadedBy ? escapeHtml(video.uploadedBy) : "NextStream"}
             </div>
 
         </div>
@@ -861,7 +1182,7 @@ async function loadVideos() {
     });
 }
 
-loadVideos();
+checkAuth().then(() => loadVideos());
 
 </script>
 
