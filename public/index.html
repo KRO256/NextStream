@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>NextStream</title>
+
+<link
+rel="preconnect"
+href="https://fonts.googleapis.com">
+
+<link
+rel="preconnect"
+href="https://fonts.gstatic.com"
+crossorigin>
+
+<link
+href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+rel="stylesheet">
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:"Inter",sans-serif;
+    background:#0b0b0f;
+    color:white;
+}
+
+/* =======================
+   HEADER
+======================= */
+
+header{
+    position:sticky;
+    top:0;
+    z-index:100;
+
+    backdrop-filter:blur(18px);
+
+    background:rgba(10,10,15,0.75);
+
+    border-bottom:
+    1px solid rgba(255,255,255,0.08);
+
+    padding:16px 24px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+}
+
+.logo{
+    font-size:26px;
+    font-weight:700;
+
+    background:linear-gradient(
+        90deg,
+        #7c4dff,
+        #00d4ff
+    );
+
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+
+.actions{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.uploadBtn{
+    background:linear-gradient(
+        135deg,
+        #7c4dff,
+        #5b7cff
+    );
+
+    border:none;
+    color:white;
+
+    padding:12px 18px;
+
+    border-radius:14px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:0.2s;
+}
+
+.uploadBtn:hover{
+    transform:translateY(-2px);
+    opacity:0.9;
+}
+
+.fileInput{
+    display:none;
+}
+
+.customFile{
+    background:#1a1a22;
+
+    border:
+    1px solid rgba(255,255,255,0.08);
+
+    padding:12px 16px;
+
+    border-radius:14px;
+
+    cursor:pointer;
+
+    transition:0.2s;
+}
+
+.customFile:hover{
+    background:#22222c;
+}
+
+/* =======================
+   HERO
+======================= */
+
+.hero{
+    padding:70px 24px 40px;
+}
+
+.heroTitle{
+    font-size:52px;
+    font-weight:800;
+
+    line-height:1.05;
+
+    max-width:850px;
+}
+
+.heroTitle span{
+    background:linear-gradient(
+        90deg,
+        #7c4dff,
+        #00d4ff
+    );
+
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+
+.heroSub{
+    margin-top:20px;
+    color:#a0a0b5;
+    font-size:18px;
+    max-width:700px;
+}
+
+/* =======================
+   PROGRESS
+======================= */
+
+.progressWrap{
+    margin-top:24px;
+    width:100%;
+    max-width:500px;
+}
+
+.progressBar{
+    width:100%;
+    height:14px;
+
+    background:#1a1a22;
+
+    border-radius:999px;
+
+    overflow:hidden;
+}
+
+.progressFill{
+    width:0%;
+    height:100%;
+
+    background:linear-gradient(
+        90deg,
+        #7c4dff,
+        #00d4ff
+    );
+
+    transition:0.2s;
+}
+
+.progressText{
+    margin-top:10px;
+    color:#b8b8c7;
+}
+
+/* =======================
+   GRID
+======================= */
+
+#videos{
+    padding:10px 24px 60px;
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fill,minmax(340px,1fr));
+
+    gap:28px;
+}
+
+/* =======================
+   CARD
+======================= */
+
+.card{
+    background:
+    rgba(255,255,255,0.04);
+
+    border:
+    1px solid rgba(255,255,255,0.06);
+
+    border-radius:24px;
+
+    overflow:hidden;
+
+    transition:0.25s;
+
+    backdrop-filter:blur(10px);
+}
+
+.card:hover{
+    transform:translateY(-6px);
+
+    border-color:
+    rgba(124,77,255,0.5);
+
+    box-shadow:
+    0 20px 40px rgba(0,0,0,0.35);
+}
+
+.videoWrap{
+    position:relative;
+    aspect-ratio:16/9;
+    background:black;
+}
+
+video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.cardBody{
+    padding:18px;
+}
+
+.videoName{
+    font-size:15px;
+    font-weight:600;
+
+    line-height:1.4;
+
+    word-break:break-word;
+}
+
+.videoMeta{
+    margin-top:10px;
+    color:#8c8ca3;
+    font-size:13px;
+}
+
+/* =======================
+   EMPTY
+======================= */
+
+.empty{
+    padding:80px 20px;
+    text-align:center;
+    color:#88889c;
+    font-size:18px;
+}
+
+/* =======================
+   MOBILE
+======================= */
+
+@media(max-width:700px){
+
+    .heroTitle{
+        font-size:38px;
+    }
+
+    header{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .actions{
+        width:100%;
+        flex-wrap:wrap;
+    }
+
+    .uploadBtn{
+        width:100%;
+    }
+
+    .customFile{
+        width:100%;
+    }
+}
+
+</style>
+</head>
+<body>
+
+<header>
+
+<div class="logo">
+NextStream
+</div>
+
+<div class="actions">
+
+<label class="customFile">
+
+動画を選択
+
+<input
+type="file"
+id="file"
+class="fileInput"
+accept="video/*">
+
+</label>
+
+<button
+id="uploadBtn"
+class="uploadBtn"
+onclick="upload()">
+
+アップロード
+
+</button>
+
+</div>
+
+</header>
+
+<section class="hero">
+
+<div class="heroTitle">
+
+次世代の
+<span>動画共有</span>
+プラットフォーム
+
+</div>
+
+<div class="heroSub">
+
+Node.jsだけで動く、
+モダンUIのシンプルな動画投稿サイト
+
+</div>
+
+<div class="progressWrap">
+
+<div class="progressBar">
+<div
+class="progressFill"
+id="progressFill">
+</div>
+</div>
+
+<div
+class="progressText"
+id="progressText">
+
+待機中
+
+</div>
+
+</div>
+
+</section>
+
+<div id="videos"></div>
+
+<script>
+
+async function upload() {
+
+    const button =
+    document.getElementById("uploadBtn");
+
+    button.disabled = true;
+
+    button.style.opacity = "0.5";
+
+    const file =
+    document.getElementById("file").files[0];
+
+    if (!file) {
+
+        button.disabled = false;
+
+        button.style.opacity = "1";
+
+        alert("動画を選択してください");
+
+        return;
+    }
+
+    try {
+
+        const chunkSize =
+        5 * 1024 * 1024;
+
+        const totalChunks =
+        Math.ceil(file.size / chunkSize);
+
+        const fileId =
+        Date.now().toString();
+
+        const fill =
+        document.getElementById("progressFill");
+
+        const text =
+        document.getElementById("progressText");
+
+        for (let i = 0; i < totalChunks; i++) {
+
+            const start =
+            i * chunkSize;
+
+            const end =
+            start + chunkSize;
+
+            const chunk =
+            file.slice(start, end);
+
+            const formData =
+            new FormData();
+
+            formData.append("chunk", chunk);
+
+            formData.append("fileId", fileId);
+
+            formData.append("chunkIndex", i);
+
+            formData.append("totalChunks", totalChunks);
+
+            formData.append("fileName", file.name);
+
+            await fetch("/upload-chunk", {
+                method:"POST",
+                body:formData
+            });
+
+            const percent =
+            Math.floor(
+                ((i + 1) / totalChunks) * 100
+            );
+
+            fill.style.width =
+            percent + "%";
+
+            text.innerText =
+            `アップロード中 ${percent}%`;
+        }
+
+        text.innerText =
+        "アップロード完了";
+
+        loadVideos();
+
+    } catch(err) {
+
+        console.error(err);
+
+        alert("アップロード失敗");
+
+    } finally {
+
+        button.disabled = false;
+
+        button.style.opacity = "1";
+    }
+}
+
+async function loadVideos() {
+
+    const res =
+    await fetch("/list");
+
+    const videos =
+    await res.json();
+
+    const container =
+    document.getElementById("videos");
+
+    container.innerHTML = "";
+
+    if (videos.length === 0) {
+
+        container.innerHTML = `
+        <div class="empty">
+            まだ動画がありません
+        </div>
+        `;
+
+        return;
+    }
+
+    videos.forEach(video => {
+
+        const div =
+        document.createElement("div");
+
+        div.className = "card";
+
+        div.innerHTML = `
+
+        <div class="videoWrap">
+
+            <video
+            controls
+            preload="metadata"
+            src="${video.url}">
+            </video>
+
+        </div>
+
+        <div class="cardBody">
+
+            <div class="videoName">
+                ${video.name}
+            </div>
+
+            <div class="videoMeta">
+                NextStream
+            </div>
+
+        </div>
+
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+loadVideos();
+
+</script>
+
+</body>
+</html>
