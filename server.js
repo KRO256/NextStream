@@ -30,6 +30,8 @@ const tempDir = path.join(__dirname, "temp");
 const chunksDir = path.join(__dirname, "chunks");
 const metadataPath = path.join(__dirname, "videos.json");
 const usersPath = path.join(__dirname, "users.json");
+const subscriptionsPath = path.join(__dirname, "subscriptions.json");
+const viewsPath = path.join(__dirname, "views.json");
 
 [uploadDir, tempDir, chunksDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
@@ -59,6 +61,30 @@ function loadUsers() {
 
 function saveUsers(data) {
     fs.writeFileSync(usersPath, JSON.stringify(data, null, 2));
+}
+
+function loadSubscriptions() {
+    try {
+        return JSON.parse(fs.readFileSync(subscriptionsPath, "utf8"));
+    } catch {
+        return {};
+    }
+}
+
+function saveSubscriptions(data) {
+    fs.writeFileSync(subscriptionsPath, JSON.stringify(data, null, 2));
+}
+
+function loadViews() {
+    try {
+        return JSON.parse(fs.readFileSync(viewsPath, "utf8"));
+    } catch {
+        return {};
+    }
+}
+
+function saveViews(data) {
+    fs.writeFileSync(viewsPath, JSON.stringify(data, null, 2));
 }
 
 function requireAuth(req, res, next) {
@@ -271,7 +297,8 @@ app.post("/upload-chunk", requireAuth, upload.single("chunk"), (req, res) => {
                     title: title || safeName,
                     tags: tagList,
                     uploadedBy: req.session.userId,
-                    likes: []
+                    likes: [],
+                    views: 0
                 };
                 saveMetadata(metadata);
 
@@ -378,6 +405,102 @@ app.post("/api/video/:filename/like", requireAuth, (req, res) => {
     }
 });
 
+app.post("/api/channel/:username/subscribe", requireAuth, (req, res) => {
+    try {
+        const channel = req.params.username;
+        const user = req.session.userId;
+
+        if (channel === user) {
+            return res.status(400).json({ success: false, error: "自分自身を登録できません" });
+        }
+
+        const users = loadUsers();
+        if (!users[channel]) {
+            return res.status(404).json({ success: false, error: "チャンネルが見つかりません" });
+        }
+
+        const subscriptions = loadSubscriptions();
+        if (!subscriptions[channel]) {
+            subscriptions[channel] = [];
+        }
+
+        const idx = subscriptions[channel].indexOf(user);
+        if (idx === -1) {
+            subscriptions[channel].push(user);
+        } else {
+            subscriptions[channel].splice(idx, 1);
+        }
+
+        saveSubscriptions(subscriptions);
+
+        res.json({
+            success: true,
+            subscribed: idx === -1,
+            subscribers: subscriptions[channel].length
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/channel/:username/subscribers", (req, res) => {
+    try {
+        const channel = req.params.username;
+        const subscriptions = loadSubscriptions();
+        const subs = subscriptions[channel] || [];
+
+        res.json({
+            success: true,
+            subscribers: subs.length,
+            subscribed: req.session.userId ? subs.includes(req.session.userId) : false
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post("/api/video/:filename/view", (req, res) => {
+    try {
+        const metadata = loadMetadata();
+        const video = metadata[req.params.filename];
+
+        if (!video) {
+            return res.status(404).json({ success: false, error: "Video not found" });
+        }
+
+        video.views = (video.views || 0) + 1;
+        saveMetadata(metadata);
+
+        const now = Date.now();
+        const views = loadViews();
+        if (!views[req.params.filename]) {
+            views[req.params.filename] = [];
+        }
+        views[req.params.filename].push(now);
+        saveViews(views);
+
+        let periodViews = null;
+        if (req.query.period) {
+            let cutoff;
+            switch (req.query.period) {
+                case "year": cutoff = now - 365 * 24 * 60 * 60 * 1000; break;
+                case "month": cutoff = now - 30 * 24 * 60 * 60 * 1000; break;
+                case "week": cutoff = now - 7 * 24 * 60 * 60 * 1000; break;
+                case "day": cutoff = now - 24 * 60 * 60 * 1000; break;
+                default: cutoff = 0;
+            }
+            periodViews = views[req.params.filename].filter(ts => ts >= cutoff).length;
+        }
+
+        res.json({ success: true, views: video.views, periodViews });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 app.get("/list", (req, res) => {
 
     const files = fs.readdirSync(uploadDir);
@@ -391,7 +514,8 @@ app.get("/list", (req, res) => {
         tags: metadata[file]?.tags || [],
         uploadedBy: metadata[file]?.uploadedBy || null,
         likes: metadata[file]?.likes?.length || 0,
-        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false
+        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false,
+        views: metadata[file]?.views || 0
     }));
 
     videos.reverse();
@@ -414,7 +538,8 @@ app.get("/channel/:username", (req, res) => {
         tags: metadata[file]?.tags || [],
         uploadedBy: metadata[file]?.uploadedBy || null,
         likes: metadata[file]?.likes?.length || 0,
-        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false
+        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false,
+        views: metadata[file]?.views || 0
     }));
 
     videos.reverse();
@@ -443,11 +568,64 @@ app.get("/search", (req, res) => {
         tags: metadata[file]?.tags || [],
         uploadedBy: metadata[file]?.uploadedBy || null,
         likes: metadata[file]?.likes?.length || 0,
-        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false
+        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false,
+        views: metadata[file]?.views || 0
     }));
 
     results.reverse();
     res.json(results);
+});
+
+app.get("/api/ranking", (req, res) => {
+    try {
+        const period = req.query.period || "all";
+        const now = Date.now();
+        let cutoff;
+
+        switch (period) {
+            case "year": cutoff = now - 365 * 24 * 60 * 60 * 1000; break;
+            case "month": cutoff = now - 30 * 24 * 60 * 60 * 1000; break;
+            case "week": cutoff = now - 7 * 24 * 60 * 60 * 1000; break;
+            case "day": cutoff = now - 24 * 60 * 60 * 1000; break;
+            default: cutoff = 0;
+        }
+
+        const files = fs.readdirSync(uploadDir);
+        const metadata = loadMetadata();
+        const views = loadViews();
+
+        const videos = files.map(file => {
+            const meta = metadata[file];
+            let periodViews = 0;
+
+            if (views[file]) {
+                if (period === "all") {
+                    periodViews = views[file].length;
+                } else {
+                    periodViews = views[file].filter(ts => ts >= cutoff).length;
+                }
+            }
+
+            return {
+                name: file,
+                url: "/videos/" + file,
+                title: meta?.title || file,
+                tags: meta?.tags || [],
+                uploadedBy: meta?.uploadedBy || null,
+                likes: meta?.likes?.length || 0,
+                likedByUser: req.session.userId && meta?.likes?.includes(req.session.userId) || false,
+                views: periodViews,
+                totalViews: meta?.views || 0
+            };
+        });
+
+        videos.sort((a, b) => b.views - a.views);
+
+        res.json(videos);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 app.listen(PORT, () => {

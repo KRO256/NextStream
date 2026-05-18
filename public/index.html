@@ -356,6 +356,84 @@ video{
     stroke-width:2;
 }
 
+.tabBar{
+    display:flex;
+    gap:8px;
+    padding:0 24px 20px;
+    flex-wrap:wrap;
+}
+
+.tab{
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.08);
+    color:#a0a0b5;
+    padding:8px 18px;
+    border-radius:999px;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    transition:0.2s;
+    font-family:"Inter",sans-serif;
+}
+
+.tab:hover{
+    background:rgba(124,77,255,0.15);
+    border-color:rgba(124,77,255,0.3);
+    color:white;
+}
+
+.tab.active{
+    background:linear-gradient(135deg,#7c4dff,#5b7cff);
+    border-color:transparent;
+    color:white;
+}
+
+.rankBadge{
+    position:absolute;
+    top:10px;
+    left:10px;
+    background:linear-gradient(135deg,#7c4dff,#5b7cff);
+    color:white;
+    font-weight:700;
+    font-size:15px;
+    padding:4px 14px;
+    border-radius:999px;
+    z-index:10;
+    line-height:1.3;
+}
+
+.rankBadge.gold{
+    background:linear-gradient(135deg,#ffd700,#ffaa00);
+    color:#1a1a2e;
+}
+
+.rankBadge.silver{
+    background:linear-gradient(135deg,#c0c0c0,#a0a0a0);
+    color:#1a1a2e;
+}
+
+.rankBadge.bronze{
+    background:linear-gradient(135deg,#cd7f32,#b8860b);
+    color:white;
+}
+
+.rankingViews{
+    color:#7c4dff;
+    font-weight:600;
+}
+
+.heroRanking{
+    font-size:28px;
+    font-weight:700;
+    margin-bottom:8px;
+}
+
+.heroRanking span{
+    background:linear-gradient(90deg,#7c4dff,#00d4ff);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+
 .videoTags{
     margin-top:10px;
     display:flex;
@@ -568,7 +646,20 @@ onclick="clearSearch()">
 
 <div id="channelHeader" style="display:none;padding:0 24px 16px">
     <button class="uploadBtn secondary" onclick="clearChannel()">← すべての動画</button>
-    <h2 id="channelName" style="margin:10px 0 0;font-size:24px;font-weight:700"></h2>
+    <div style="display:flex;align-items:center;gap:16px;margin-top:10px;flex-wrap:wrap">
+        <h2 id="channelName" style="margin:0;font-size:24px;font-weight:700"></h2>
+        <button id="subscribeBtn" class="uploadBtn" style="display:none;padding:8px 18px;font-size:14px" onclick="toggleSubscribe()"></button>
+        <span id="subscriberCount" style="color:#8c8ca3;font-size:14px"></span>
+    </div>
+</div>
+
+<div class="tabBar" id="tabBar">
+    <button class="tab active" data-view="all" onclick="showAllVideos()">すべて</button>
+    <button class="tab" data-view="ranking" data-period="all" onclick="showRanking('all')">全期間</button>
+    <button class="tab" data-view="ranking" data-period="year" onclick="showRanking('year')">１年</button>
+    <button class="tab" data-view="ranking" data-period="month" onclick="showRanking('month')">１ヶ月</button>
+    <button class="tab" data-view="ranking" data-period="week" onclick="showRanking('week')">１週間</button>
+    <button class="tab" data-view="ranking" data-period="day" onclick="showRanking('day')">１日</button>
 </div>
 
 <div id="videos"></div>
@@ -1048,6 +1139,10 @@ async function searchVideos() {
     document.getElementById("channelHeader").style.display = "none";
     currentChannel = null;
 
+    currentPeriod = null;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelector('.tab[data-view="all"]').classList.add("active");
+
     renderVideoList(videos, `「${q}」に一致する動画はありません`);
 }
 
@@ -1058,10 +1153,10 @@ function clearSearch() {
     document.getElementById("searchBtn").style.display = "";
     document.getElementById("clearSearchBtn").style.display = "none";
 
-    loadVideos();
+    showAllVideos();
 }
 
-function renderVideoList(videos, emptyMessage) {
+function renderVideoList(videos, emptyMessage, showRank) {
     const container = document.getElementById("videos");
     container.innerHTML = "";
 
@@ -1070,7 +1165,7 @@ function renderVideoList(videos, emptyMessage) {
         return;
     }
 
-    videos.forEach(video => {
+    videos.forEach((video, index) => {
         const div = document.createElement("div");
         div.className = "card";
 
@@ -1082,8 +1177,13 @@ function renderVideoList(videos, emptyMessage) {
             }</div>`
             : `<div class="videoTags" data-filename="${video.name}"><span class="tag addTag">+ タグ追加</span></div>`;
 
+        const rankHtml = showRank
+            ? `<div class="rankBadge${index === 0 ? ' gold' : index === 1 ? ' silver' : index === 2 ? ' bronze' : ''}">#${index + 1}</div>`
+            : "";
+
         div.innerHTML = `
         <div class="videoWrap">
+            ${rankHtml}
             <video
             controls
             preload="metadata"
@@ -1097,6 +1197,7 @@ function renderVideoList(videos, emptyMessage) {
             ${tagsHtml}
             <div class="videoMeta">
                 ${video.uploadedBy ? `<span class="channelLink">${escapeHtml(video.uploadedBy)}</span>` : "NextStream"} ·
+                <span class="viewCount ${showRank ? 'rankingViews' : ''}">${video.views || 0} 回視聴</span> ·
                 <button class="likeBtn${video.likedByUser ? ' liked' : ''}" data-filename="${video.name}" onclick="toggleLike(this)">
                     <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                     <span class="likeCount">${video.likes || 0}</span>
@@ -1126,6 +1227,28 @@ function renderVideoList(videos, emptyMessage) {
             });
         }
 
+        const videoEl = div.querySelector("video");
+        let viewCounted = false;
+        videoEl.addEventListener("play", async function() {
+            if (viewCounted) return;
+            viewCounted = true;
+            try {
+                const period = currentPeriod;
+                const url = "/api/video/" + encodeURIComponent(video.name) + "/view" + (period ? "?period=" + period : "");
+                const res = await fetch(url, { method: "POST" });
+                const data = await res.json();
+                if (data.success) {
+                    const viewEl = div.querySelector(".viewCount");
+                    if (viewEl) {
+                        const displayViews = data.periodViews != null ? data.periodViews : data.views;
+                        viewEl.textContent = displayViews + " 回視聴";
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        });
+
         container.appendChild(div);
     });
 }
@@ -1137,20 +1260,62 @@ async function showChannel(username) {
     document.getElementById("clearSearchBtn").style.display = "none";
     document.getElementById("searchInput").value = "";
 
+    currentPeriod = null;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelector('.tab[data-view="all"]').classList.add("active");
+
     const header = document.getElementById("channelHeader");
     document.getElementById("channelName").textContent = username + " の動画";
     header.style.display = "block";
 
-    const res = await fetch("/channel/" + encodeURIComponent(username));
-    const videos = await res.json();
+    const [videosRes, subsRes] = await Promise.all([
+        fetch("/channel/" + encodeURIComponent(username)),
+        fetch("/api/channel/" + encodeURIComponent(username) + "/subscribers")
+    ]);
+    const videos = await videosRes.json();
+    const subsData = await subsRes.json();
 
     renderVideoList(videos, "このチャンネルにはまだ動画がありません");
+    updateSubscribeButton(username, subsData);
+}
+
+function updateSubscribeButton(channel, subsData) {
+    const btn = document.getElementById("subscribeBtn");
+    const countEl = document.getElementById("subscriberCount");
+
+    countEl.textContent = subsData.subscribers + " 人の登録者";
+
+    if (!currentUser || channel === currentUser) {
+        btn.style.display = "none";
+        return;
+    }
+
+    btn.style.display = "";
+    btn.textContent = subsData.subscribed ? "登録中" : "登録";
+    btn.className = "uploadBtn" + (subsData.subscribed ? " secondary" : "");
+    btn.dataset.channel = channel;
+    btn.dataset.subscribed = subsData.subscribed;
+}
+
+async function toggleSubscribe() {
+    const btn = document.getElementById("subscribeBtn");
+    const channel = btn.dataset.channel;
+
+    try {
+        const res = await fetch("/api/channel/" + encodeURIComponent(channel) + "/subscribe", { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+            updateSubscribeButton(channel, { subscribers: data.subscribers, subscribed: data.subscribed });
+        }
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 function clearChannel() {
     currentChannel = null;
     document.getElementById("channelHeader").style.display = "none";
-    loadVideos();
+    showAllVideos();
 }
 
 async function loadVideos() {
@@ -1176,6 +1341,46 @@ async function toggleLike(btn) {
             btn.classList.toggle("liked", data.liked);
             btn.querySelector(".likeCount").textContent = data.likes;
         }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+let currentPeriod = null;
+
+async function showAllVideos() {
+    currentPeriod = null;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelector('.tab[data-view="all"]').classList.add("active");
+    document.getElementById("channelHeader").style.display = "none";
+    currentChannel = null;
+    document.querySelector(".hero").style.display = "";
+    document.querySelector(".heroTitle").innerHTML = 'シンプルな<br><span>動画共有</span><br>プラットフォーム';
+    loadVideos();
+}
+
+async function showRanking(period) {
+    currentPeriod = period;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelector(`.tab[data-period="${period}"]`).classList.add("active");
+    document.getElementById("channelHeader").style.display = "none";
+    currentChannel = null;
+    document.querySelector(".hero").style.display = "";
+
+    const periodLabels = {
+        all: "全期間",
+        year: "年間",
+        month: "月間",
+        week: "週間",
+        day: "日間"
+    };
+
+    document.querySelector(".heroTitle").innerHTML = '<span>' + periodLabels[period] + 'ランキング</span>';
+
+    try {
+        const res = await fetch("/api/ranking?period=" + period);
+        const videos = await res.json();
+        renderVideoList(videos, 'ランキング（' + periodLabels[period] + '）の動画はまだありません', true);
     } catch (e) {
         console.error(e);
     }
