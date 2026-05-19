@@ -422,6 +422,121 @@ video{
     font-weight:600;
 }
 
+.commentsSection{
+    margin-top:16px;
+    border-top:1px solid rgba(255,255,255,0.06);
+    padding-top:14px;
+}
+
+.commentsSection summary{
+    cursor:pointer;
+    color:#8c8ca3;
+    font-size:13px;
+    font-weight:500;
+    padding:4px 0;
+    user-select:none;
+}
+
+.commentsSection summary:hover{
+    color:#b8b8ff;
+}
+
+.commentList{
+    margin-top:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-height:300px;
+    overflow-y:auto;
+}
+
+.commentItem{
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.05);
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:13px;
+}
+
+.commentAuthor{
+    font-weight:600;
+    color:#b8b8ff;
+    font-size:12px;
+    margin-bottom:4px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.commentDeleteBtn{
+    background:none;
+    border:none;
+    color:#e53935;
+    cursor:pointer;
+    font-size:11px;
+    padding:0;
+    opacity:0.5;
+    transition:0.2s;
+}
+
+.commentDeleteBtn:hover{
+    opacity:1;
+}
+
+.commentText{
+    color:#d0d0e0;
+    line-height:1.4;
+    word-break:break-word;
+}
+
+.commentForm{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+}
+
+.commentInput{
+    flex:1;
+    background:#1a1a22;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px;
+    padding:8px 12px;
+    color:white;
+    font-family:"Inter",sans-serif;
+    font-size:13px;
+    outline:none;
+    resize:none;
+    transition:0.2s;
+    min-height:36px;
+}
+
+.commentInput:focus{
+    border-color:#7c4dff;
+}
+
+.commentSubmitBtn{
+    background:linear-gradient(135deg,#7c4dff,#5b7cff);
+    border:none;
+    color:white;
+    padding:8px 14px;
+    border-radius:12px;
+    font-weight:500;
+    font-size:13px;
+    cursor:pointer;
+    transition:0.2s;
+    font-family:"Inter",sans-serif;
+    white-space:nowrap;
+}
+
+.commentSubmitBtn:hover{
+    opacity:0.9;
+}
+
+.commentEmpty{
+    color:#6c6c82;
+    font-size:13px;
+}
+
 .heroRanking{
     font-size:28px;
     font-weight:700;
@@ -1203,6 +1318,14 @@ function renderVideoList(videos, emptyMessage, showRank) {
                     <span class="likeCount">${video.likes || 0}</span>
                 </button>
             </div>
+            <details class="commentsSection" data-filename="${video.name}">
+                <summary>コメントを見る</summary>
+                <div class="commentList"></div>
+                <div class="commentForm">
+                    <textarea class="commentInput" placeholder="コメントを入力..." rows="1"></textarea>
+                    <button class="commentSubmitBtn" onclick="postComment(this)">投稿</button>
+                </div>
+            </details>
         </div>
         `;
 
@@ -1226,6 +1349,22 @@ function renderVideoList(videos, emptyMessage, showRank) {
                 showChannel(video.uploadedBy);
             });
         }
+
+        const detailsEl = div.querySelector(".commentsSection");
+        detailsEl.addEventListener("toggle", function() {
+            if (this.open && !this.dataset.loaded) {
+                this.dataset.loaded = "true";
+                loadComments(this);
+            }
+        });
+
+        const commentInput = detailsEl.querySelector(".commentInput");
+        commentInput.addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                postComment(this.nextElementSibling);
+            }
+        });
 
         const videoEl = div.querySelector("video");
         let viewCounted = false;
@@ -1330,6 +1469,103 @@ async function loadVideos() {
     await res.json();
 
     renderVideoList(videos, "まだ動画がありません");
+}
+
+async function loadComments(detailsEl) {
+    const filename = detailsEl.dataset.filename;
+    const listEl = detailsEl.querySelector(".commentList");
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(filename) + "/comments");
+        const data = await res.json();
+        if (data.success) {
+            renderComments(listEl, data.comments, filename);
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function renderComments(listEl, comments, filename) {
+    if (comments.length === 0) {
+        listEl.innerHTML = '<div class="commentEmpty">コメントはまだありません</div>';
+        return;
+    }
+    listEl.innerHTML = comments.map(c => `
+        <div class="commentItem">
+            <div class="commentAuthor">
+                <span>${escapeHtml(c.username)}</span>
+                ${currentUser === c.username ? `<button class="commentDeleteBtn" onclick="deleteComment('${filename}', '${c.id}', this)">削除</button>` : ""}
+            </div>
+            <div class="commentText">${escapeHtml(c.text)}</div>
+        </div>
+    `).join("");
+}
+
+async function postComment(btn) {
+    const detailsEl = btn.closest(".commentsSection");
+    const input = detailsEl.querySelector(".commentInput");
+    const text = input.value.trim();
+    if (!text) return;
+
+    if (!currentUser) {
+        openAuthModal();
+        return;
+    }
+
+    const filename = detailsEl.dataset.filename;
+    btn.disabled = true;
+    btn.textContent = "投稿中...";
+
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(filename) + "/comment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        if (data.success) {
+            input.value = "";
+            const listEl = detailsEl.querySelector(".commentList");
+            const emptyEl = listEl.querySelector(".commentEmpty");
+            if (emptyEl) {
+                listEl.innerHTML = "";
+            }
+            listEl.insertAdjacentHTML("beforeend", `
+                <div class="commentItem">
+                    <div class="commentAuthor">
+                        <span>${escapeHtml(data.comment.username)}</span>
+                        <button class="commentDeleteBtn" onclick="deleteComment('${filename}', '${data.comment.id}', this)">削除</button>
+                    </div>
+                    <div class="commentText">${escapeHtml(data.comment.text)}</div>
+                </div>
+            `);
+        } else {
+            alert(data.error || "エラーが発生しました");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("通信エラーが発生しました");
+    }
+    btn.disabled = false;
+    btn.textContent = "投稿";
+}
+
+async function deleteComment(filename, id, btn) {
+    if (!confirm("このコメントを削除しますか？")) return;
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(filename) + "/comment/" + id, {
+            method: "DELETE"
+        });
+        const data = await res.json();
+        if (data.success) {
+            btn.closest(".commentItem").remove();
+        } else {
+            alert(data.error || "エラーが発生しました");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("通信エラーが発生しました");
+    }
 }
 
 async function toggleLike(btn) {

@@ -32,6 +32,7 @@ const metadataPath = path.join(__dirname, "videos.json");
 const usersPath = path.join(__dirname, "users.json");
 const subscriptionsPath = path.join(__dirname, "subscriptions.json");
 const viewsPath = path.join(__dirname, "views.json");
+const commentsPath = path.join(__dirname, "comments.json");
 
 [uploadDir, tempDir, chunksDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
@@ -85,6 +86,18 @@ function loadViews() {
 
 function saveViews(data) {
     fs.writeFileSync(viewsPath, JSON.stringify(data, null, 2));
+}
+
+function loadComments() {
+    try {
+        return JSON.parse(fs.readFileSync(commentsPath, "utf8"));
+    } catch {
+        return {};
+    }
+}
+
+function saveComments(data) {
+    fs.writeFileSync(commentsPath, JSON.stringify(data, null, 2));
 }
 
 function requireAuth(req, res, next) {
@@ -455,6 +468,81 @@ app.get("/api/channel/:username/subscribers", (req, res) => {
             subscribers: subs.length,
             subscribed: req.session.userId ? subs.includes(req.session.userId) : false
         });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post("/api/video/:filename/comment", requireAuth, (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text || !text.trim()) {
+            return res.status(400).json({ success: false, error: "コメントを入力してください" });
+        }
+        if (text.length > 500) {
+            return res.status(400).json({ success: false, error: "コメントは500文字以内で入力してください" });
+        }
+
+        const metadata = loadMetadata();
+        if (!metadata[req.params.filename]) {
+            return res.status(404).json({ success: false, error: "Video not found" });
+        }
+
+        const comments = loadComments();
+        if (!comments[req.params.filename]) {
+            comments[req.params.filename] = [];
+        }
+
+        const comment = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+            username: req.session.userId,
+            text: text.trim(),
+            createdAt: new Date().toISOString()
+        };
+
+        comments[req.params.filename].push(comment);
+        saveComments(comments);
+
+        res.json({ success: true, comment });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/video/:filename/comments", (req, res) => {
+    try {
+        const comments = loadComments();
+        const list = comments[req.params.filename] || [];
+        res.json({ success: true, comments: list });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.delete("/api/video/:filename/comment/:id", requireAuth, (req, res) => {
+    try {
+        const comments = loadComments();
+        const list = comments[req.params.filename];
+        if (!list) {
+            return res.status(404).json({ success: false, error: "コメントが見つかりません" });
+        }
+
+        const idx = list.findIndex(c => c.id === req.params.id);
+        if (idx === -1) {
+            return res.status(404).json({ success: false, error: "コメントが見つかりません" });
+        }
+
+        if (list[idx].username !== req.session.userId) {
+            return res.status(403).json({ success: false, error: "自分のコメントのみ削除できます" });
+        }
+
+        list.splice(idx, 1);
+        saveComments(comments);
+
+        res.json({ success: true });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
