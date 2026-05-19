@@ -42,6 +42,7 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+            scriptSrcAttr: ["'unsafe-inline'"],
             styleSrc: ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
             fontSrc: ["https://fonts.gstatic.com"],
             connectSrc: ["'self'"],
