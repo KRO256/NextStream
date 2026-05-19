@@ -1270,12 +1270,21 @@ onclick="deleteAccount()">
 <script>
 
 let currentUser = null;
+let csrfToken = null;
 let isLoginMode = true;
 let currentChannel = null;
 let currentPage = 1;
 let totalPages = 1;
 let currentView = 'all'; // 'all' | 'channel' | 'search' | 'ranking' | 'bookmarks'
 let currentSearchQuery = '';
+
+function csrfFetch(url, options = {}) {
+    const method = (options.method || "GET").toUpperCase();
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && csrfToken) {
+        options.headers = { ...options.headers, "X-CSRF-Token": csrfToken };
+    }
+    return fetch(url, options);
+}
 
 async function checkAuth() {
     try {
@@ -1284,6 +1293,7 @@ async function checkAuth() {
         if (data.success && data.user) {
             currentUser = data.user;
         }
+        csrfToken = data.csrfToken || null;
     } catch (e) {
         console.error(e);
     }
@@ -1373,6 +1383,7 @@ async function submitAuth() {
 
         if (data.success) {
             currentUser = data.user;
+            csrfToken = data.csrfToken || null;
             renderAuthArea();
             closeAuthModal();
         } else {
@@ -1386,8 +1397,9 @@ async function submitAuth() {
 }
 
 async function logout() {
-    await fetch("/api/logout", { method: "POST" });
+    await csrfFetch("/api/logout", { method: "POST" });
     currentUser = null;
+    csrfToken = null;
     renderAuthArea();
 }
 
@@ -1412,7 +1424,7 @@ async function deleteAccount() {
     }
 
     try {
-        const res = await fetch("/api/account", {
+        const res = await csrfFetch("/api/account", {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ password })
@@ -1496,7 +1508,7 @@ function startEditTags(el) {
             return;
         }
 
-        await fetch(
+        await csrfFetch(
             "/video/" +
             encodeURIComponent(filename),
             {
@@ -1728,7 +1740,7 @@ function renderVideoList(videos, emptyMessage, showRank) {
             try {
                 const period = currentPeriod;
                 const url = "/api/video/" + encodeURIComponent(video.name) + "/view" + (period ? "?period=" + period : "");
-                const res = await fetch(url, { method: "POST" });
+                const res = await csrfFetch(url, { method: "POST" });
                 const data = await res.json();
                 if (data.success) {
                     const viewEl = div.querySelector(".viewCount");
@@ -1862,7 +1874,7 @@ async function toggleSubscribe() {
     const channel = btn.dataset.channel;
 
     try {
-        const res = await fetch("/api/channel/" + encodeURIComponent(channel) + "/subscribe", { method: "POST" });
+        const res = await csrfFetch("/api/channel/" + encodeURIComponent(channel) + "/subscribe", { method: "POST" });
         const data = await res.json();
         if (data.success) {
             updateSubscribeButton(channel, { subscribers: data.subscribers, subscribed: data.subscribed });
@@ -1946,7 +1958,7 @@ async function postComment(btn) {
     btn.textContent = "投稿中...";
 
     try {
-        const res = await fetch("/api/video/" + encodeURIComponent(filename) + "/comment", {
+        const res = await csrfFetch("/api/video/" + encodeURIComponent(filename) + "/comment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text })
@@ -1985,7 +1997,7 @@ async function postComment(btn) {
 async function deleteComment(filename, id, btn) {
     if (!confirm("このコメントを削除しますか？")) return;
     try {
-        const res = await fetch("/api/video/" + encodeURIComponent(filename) + "/comment/" + id, {
+        const res = await csrfFetch("/api/video/" + encodeURIComponent(filename) + "/comment/" + id, {
             method: "DELETE"
         });
         const data = await res.json();
@@ -2003,7 +2015,7 @@ async function deleteComment(filename, id, btn) {
 async function toggleLike(btn) {
     const filename = btn.dataset.filename;
     try {
-        const res = await fetch("/api/video/" + encodeURIComponent(filename) + "/like", { method: "POST" });
+        const res = await csrfFetch("/api/video/" + encodeURIComponent(filename) + "/like", { method: "POST" });
         const data = await res.json();
         if (data.success) {
             btn.classList.toggle("liked", data.liked);
@@ -2074,7 +2086,7 @@ async function deleteVideo(btn) {
     const filename = btn.dataset.filename;
     if (!confirm("この動画を削除しますか？")) return;
     try {
-        const res = await fetch("/api/video/" + encodeURIComponent(filename), {
+        const res = await csrfFetch("/api/video/" + encodeURIComponent(filename), {
             method: "DELETE"
         });
         const data = await res.json();
@@ -2096,7 +2108,7 @@ async function toggleBookmark(btn) {
     }
     const filename = btn.dataset.filename;
     try {
-        const res = await fetch("/api/video/" + encodeURIComponent(filename) + "/bookmark", { method: "POST" });
+        const res = await csrfFetch("/api/video/" + encodeURIComponent(filename) + "/bookmark", { method: "POST" });
         const data = await res.json();
         if (data.success) {
             btn.classList.toggle("bookmarked", data.bookmarked);
@@ -2214,7 +2226,7 @@ function renderVideoDetail(video) {
         if (viewCounted) return;
         viewCounted = true;
         try {
-            const res = await fetch("/api/video/" + encodeURIComponent(video.name) + "/view", { method: "POST" });
+            const res = await csrfFetch("/api/video/" + encodeURIComponent(video.name) + "/view", { method: "POST" });
             const viewData = await res.json();
             if (viewData.success) {
                 const viewEl = document.querySelector("#videoMeta .viewCount");
@@ -2306,7 +2318,7 @@ async function postVideoPageComment() {
     btn.textContent = "投稿中...";
 
     try {
-        const res = await fetch("/api/video/" + encodeURIComponent(videoDetailData.name) + "/comment", {
+        const res = await csrfFetch("/api/video/" + encodeURIComponent(videoDetailData.name) + "/comment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text })
@@ -2341,7 +2353,7 @@ async function postVideoPageComment() {
 async function deleteVideoPageComment(filename, id, btn) {
     if (!confirm("このコメントを削除しますか？")) return;
     try {
-        const res = await fetch("/api/video/" + encodeURIComponent(filename) + "/comment/" + id, { method: "DELETE" });
+        const res = await csrfFetch("/api/video/" + encodeURIComponent(filename) + "/comment/" + id, { method: "DELETE" });
         const data = await res.json();
         if (data.success) { btn.closest(".commentItem").remove(); }
         else { alert(data.error || "エラーが発生しました"); }
@@ -2352,7 +2364,7 @@ async function toggleVideoLike() {
     if (!videoDetailData) return;
     if (!currentUser) { openAuthModal(); return; }
     try {
-        const res = await fetch("/api/video/" + encodeURIComponent(videoDetailData.name) + "/like", { method: "POST" });
+        const res = await csrfFetch("/api/video/" + encodeURIComponent(videoDetailData.name) + "/like", { method: "POST" });
         const data = await res.json();
         if (data.success) {
             document.querySelector("#videoActions .likeBtn").classList.toggle("liked", data.liked);
@@ -2367,7 +2379,7 @@ async function toggleVideoBookmark() {
     if (!videoDetailData) return;
     if (!currentUser) { openAuthModal(); return; }
     try {
-        const res = await fetch("/api/video/" + encodeURIComponent(videoDetailData.name) + "/bookmark", { method: "POST" });
+        const res = await csrfFetch("/api/video/" + encodeURIComponent(videoDetailData.name) + "/bookmark", { method: "POST" });
         const data = await res.json();
         if (data.success) {
             document.querySelector("#videoActions .bookmarkBtn").classList.toggle("bookmarked", data.bookmarked);
@@ -2380,7 +2392,7 @@ async function deleteVideoFromPage() {
     if (!videoDetailData) return;
     if (!confirm("この動画を削除しますか？")) return;
     try {
-        const res = await fetch("/api/video/" + encodeURIComponent(videoDetailData.name), { method: "DELETE" });
+        const res = await csrfFetch("/api/video/" + encodeURIComponent(videoDetailData.name), { method: "DELETE" });
         const data = await res.json();
         if (data.success) { goBack(); }
         else { alert(data.error || "エラーが発生しました"); }
@@ -2406,7 +2418,7 @@ function editVideoTitle() {
     async function save() {
         const val = input.value.trim() || current;
         if (val.length > 100) { alert("タイトルは100文字以内で入力してください"); input.focus(); return; }
-        await fetch("/video/" + encodeURIComponent(videoDetailData.name), {
+        await csrfFetch("/video/" + encodeURIComponent(videoDetailData.name), {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ title: val })

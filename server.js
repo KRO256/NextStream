@@ -4,7 +4,10 @@ const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcrypt");
 const session = require("express-session");
+const crypto = require("crypto");
+const helmet = require("helmet");
 const { spawn } = require("child_process");
+require("dotenv").config();
 
 const app = express();
 const PORT = 3000;
@@ -16,8 +19,14 @@ app.use(express.urlencoded({
     limit: "1gb"
 }));
 
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+    console.error("SESSION_SECRET environment variable is not set");
+    process.exit(1);
+}
+
 app.use(session({
-    secret: "nextstream-secret-key-change-in-production",
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -25,6 +34,37 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000
     }
 }));
+
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+            styleSrc: ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
+            fontSrc: ["https://fonts.gstatic.com"],
+            connectSrc: ["'self'"],
+            imgSrc: ["'self'", "data:"],
+            mediaSrc: ["'self'"],
+            frameAncestors: ["'none'"]
+        }
+    },
+    crossOriginEmbedderPolicy: false
+}));
+
+app.use((req, res, next) => {
+    if (req.session && !req.session.csrfToken) {
+        req.session.csrfToken = crypto.randomUUID();
+    }
+    next();
+});
+
+function csrfProtection(req, res, next) {
+    const token = req.headers["x-csrf-token"];
+    if (!token || token !== req.session.csrfToken) {
+        return res.status(403).json({ success: false, error: "CSRFトークンが無効です" });
+    }
+    next();
+}
 
 const uploadDir = path.join(__dirname, "uploads");
 const hlsDir = path.join(uploadDir, "hls");
@@ -209,7 +249,7 @@ app.post("/api/register", rateLimit({
         saveUsers(users);
 
         req.session.userId = username;
-        res.json({ success: true, user: username });
+        res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
@@ -242,27 +282,31 @@ app.post("/api/login", rateLimit({
         }
 
         req.session.userId = username;
-        res.json({ success: true, user: username });
+        res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
-app.post("/api/logout", (req, res) => {
+app.get("/api/csrf-token", (req, res) => {
+    res.json({ success: true, csrfToken: req.session.csrfToken });
+});
+
+app.post("/api/logout", csrfProtection, (req, res) => {
     req.session.destroy();
     res.json({ success: true });
 });
 
 app.get("/api/me", (req, res) => {
     if (req.session.userId) {
-        res.json({ success: true, user: req.session.userId });
+        res.json({ success: true, user: req.session.userId, csrfToken: req.session.csrfToken });
     } else {
-        res.json({ success: false, user: null });
+        res.json({ success: false, user: null, csrfToken: req.session.csrfToken });
     }
 });
 
-app.delete("/api/account", requireAuth, async (req, res) => {
+app.delete("/api/account", requireAuth, csrfProtection, async (req, res) => {
     try {
         const { password } = req.body;
         if (!password) {
@@ -303,7 +347,7 @@ function getVideoUrl(file, meta) {
     return meta && meta.hls ? "/hls/" + file + "/index.m3u8" : "/videos/" + file;
 }
 
-app.post("/upload-chunk", requireAuth, rateLimit({
+app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 5,
     keyFn: req => "upload:" + req.session.userId,
@@ -441,7 +485,7 @@ app.post("/upload-chunk", requireAuth, rateLimit({
     }
 });
 
-app.patch("/video/:filename", requireAuth, (req, res) => {
+app.patch("/video/:filename", requireAuth, csrfProtection, (req, res) => {
 
     try {
 
@@ -496,7 +540,7 @@ app.patch("/video/:filename", requireAuth, (req, res) => {
     }
 });
 
-app.post("/api/video/:filename/like", requireAuth, (req, res) => {
+app.post("/api/video/:filename/like", requireAuth, csrfProtection, (req, res) => {
     try {
         const metadata = loadMetadata();
         const video = metadata[req.params.filename];
@@ -529,7 +573,7 @@ app.post("/api/video/:filename/like", requireAuth, (req, res) => {
     }
 });
 
-app.post("/api/video/:filename/bookmark", requireAuth, (req, res) => {
+app.post("/api/video/:filename/bookmark", requireAuth, csrfProtection, (req, res) => {
     try {
         const bookmarks = loadBookmarks();
         const user = req.session.userId;
@@ -588,7 +632,7 @@ app.get("/api/bookmarks", requireAuth, (req, res) => {
     }
 });
 
-app.post("/api/channel/:username/subscribe", requireAuth, (req, res) => {
+app.post("/api/channel/:username/subscribe", requireAuth, csrfProtection, (req, res) => {
     try {
         const channel = req.params.username;
         const user = req.session.userId;
@@ -644,7 +688,7 @@ app.get("/api/channel/:username/subscribers", (req, res) => {
     }
 });
 
-app.post("/api/video/:filename/comment", requireAuth, rateLimit({
+app.post("/api/video/:filename/comment", requireAuth, csrfProtection, rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 20,
     keyFn: req => "comment:" + req.session.userId,
@@ -697,7 +741,7 @@ app.get("/api/video/:filename/comments", (req, res) => {
     }
 });
 
-app.delete("/api/video/:filename/comment/:id", requireAuth, (req, res) => {
+app.delete("/api/video/:filename/comment/:id", requireAuth, csrfProtection, (req, res) => {
     try {
         const comments = loadComments();
         const list = comments[req.params.filename];
@@ -724,7 +768,7 @@ app.delete("/api/video/:filename/comment/:id", requireAuth, (req, res) => {
     }
 });
 
-app.post("/api/video/:filename/view", (req, res) => {
+app.post("/api/video/:filename/view", csrfProtection, (req, res) => {
     try {
         const metadata = loadMetadata();
         const video = metadata[req.params.filename];
@@ -764,7 +808,7 @@ app.post("/api/video/:filename/view", (req, res) => {
     }
 });
 
-app.delete("/api/video/:filename", requireAuth, (req, res) => {
+app.delete("/api/video/:filename", requireAuth, csrfProtection, (req, res) => {
     try {
         const metadata = loadMetadata();
         const video = metadata[req.params.filename];

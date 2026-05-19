@@ -365,6 +365,7 @@ id="progressText">
 <script>
 
 let currentUser = null;
+let csrfToken = null;
 
 async function checkAuth() {
     try {
@@ -373,6 +374,7 @@ async function checkAuth() {
         if (data.success && data.user) {
             currentUser = data.user;
             document.getElementById("userNameDisplay").textContent = data.user;
+            csrfToken = data.csrfToken || null;
         } else {
             window.location.href = "/";
         }
@@ -472,8 +474,10 @@ async function upload() {
 
             formData.append("tags", tagRaw);
 
+            const headers = csrfToken ? { "X-CSRF-Token": csrfToken } : {};
             const res = await fetch("/upload-chunk", {
                 method:"POST",
+                headers,
                 body:formData
             });
 

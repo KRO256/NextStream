@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "reset": "node reset.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "dotenv": "^17.4.2",
     "express": "^4.19.2",
     "express-session": "^1.19.0",
+    "helmet": "^8.1.0",
     "multer": "^1.4.5-lts.1"
   }
 }
