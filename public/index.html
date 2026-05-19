@@ -1286,12 +1286,15 @@ function csrfFetch(url, options = {}) {
     return fetch(url, options);
 }
 
+let isAdmin = false;
+
 async function checkAuth() {
     try {
         const res = await fetch("/api/me");
         const data = await res.json();
         if (data.success && data.user) {
             currentUser = data.user;
+            isAdmin = data.isAdmin || false;
         }
         csrfToken = data.csrfToken || null;
     } catch (e) {
@@ -1308,6 +1311,7 @@ function renderAuthArea() {
         area.innerHTML = `
             <a href="/upload.html" class="uploadBtn">＋ アップロード</a>
             <div class="userMenu">
+                ${isAdmin ? `<a href="/admin" class="uploadBtn secondary" style="padding:8px 14px;font-size:12px">⚙ 管理</a>` : ""}
                 <span class="userName">${escapeHtml(currentUser)}</span>
                 <button class="uploadBtn secondary" onclick="logout()">ログアウト</button>
                 <button class="uploadBtn danger" onclick="openDeleteModal()" style="padding:8px 12px;font-size:12px">削除</button>

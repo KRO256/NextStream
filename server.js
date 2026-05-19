@@ -25,6 +25,8 @@ if (!sessionSecret) {
     process.exit(1);
 }
 
+const adminUsername = process.env.ADMIN_USERNAME;
+
 app.use(session({
     secret: sessionSecret,
     resave: false,
@@ -162,6 +164,13 @@ function requireAuth(req, res, next) {
     next();
 }
 
+function requireAdmin(req, res, next) {
+    if (!req.session.isAdmin) {
+        return res.status(403).json({ success: false, error: "管理者権限が必要です" });
+    }
+    next();
+}
+
 const rateLimitStore = new Map();
 setInterval(() => {
     const now = Date.now();
@@ -245,10 +254,12 @@ app.post("/api/register", rateLimit({
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        users[username] = { password: hashedPassword, createdAt: new Date().toISOString() };
+        const isAdmin = adminUsername && username === adminUsername;
+        users[username] = { password: hashedPassword, createdAt: new Date().toISOString(), admin: isAdmin || undefined };
         saveUsers(users);
 
         req.session.userId = username;
+        if (isAdmin) req.session.isAdmin = true;
         res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
     } catch (err) {
         console.error(err);
@@ -282,6 +293,7 @@ app.post("/api/login", rateLimit({
         }
 
         req.session.userId = username;
+        if (user.admin) req.session.isAdmin = true;
         res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
     } catch (err) {
         console.error(err);
@@ -300,9 +312,9 @@ app.post("/api/logout", csrfProtection, (req, res) => {
 
 app.get("/api/me", (req, res) => {
     if (req.session.userId) {
-        res.json({ success: true, user: req.session.userId, csrfToken: req.session.csrfToken });
+        res.json({ success: true, user: req.session.userId, isAdmin: req.session.isAdmin || false, csrfToken: req.session.csrfToken });
     } else {
-        res.json({ success: false, user: null, csrfToken: req.session.csrfToken });
+        res.json({ success: false, user: null, isAdmin: false, csrfToken: req.session.csrfToken });
     }
 });
 
@@ -1050,6 +1062,221 @@ app.get("/api/ranking", (req, res) => {
         const paged = videos.slice(start, start + limit);
 
         res.json({ videos: paged, total, page, limit, totalPages });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/admin", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+app.get("/api/admin/users", requireAuth, requireAdmin, (req, res) => {
+    try {
+        const users = loadUsers();
+        const metadata = loadMetadata();
+        const comments = loadComments();
+
+        const userList = Object.entries(users).map(([username, data]) => {
+            const videoCount = Object.values(metadata).filter(v => v.uploadedBy === username).length;
+            const commentCount = Object.values(comments).reduce((sum, list) =>
+                sum + list.filter(c => c.username === username).length, 0
+            );
+            return {
+                username,
+                createdAt: data.createdAt,
+                admin: data.admin || false,
+                videoCount,
+                commentCount
+            };
+        });
+
+        userList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        res.json({ success: true, users: userList, total: userList.length });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/admin/videos", requireAuth, requireAdmin, (req, res) => {
+    try {
+        const metadata = loadMetadata();
+        const files = readVideoFiles();
+        const comments = loadComments();
+
+        const videoList = files.map(file => ({
+            name: file,
+            title: metadata[file]?.title || file,
+            tags: metadata[file]?.tags || [],
+            uploadedBy: metadata[file]?.uploadedBy || null,
+            likes: metadata[file]?.likes?.length || 0,
+            views: metadata[file]?.views || 0,
+            hls: metadata[file]?.hls || false,
+            commentCount: (comments[file] || []).length
+        }));
+
+        videoList.sort((a, b) => b.views - a.views);
+        res.json({ success: true, videos: videoList, total: videoList.length });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/admin/comments", requireAuth, requireAdmin, (req, res) => {
+    try {
+        const comments = loadComments();
+        const metadata = loadMetadata();
+        const allComments = [];
+
+        for (const [filename, list] of Object.entries(comments)) {
+            for (const c of list) {
+                allComments.push({
+                    id: c.id,
+                    username: c.username,
+                    text: c.text,
+                    createdAt: c.createdAt,
+                    filename,
+                    videoTitle: metadata[filename]?.title || filename
+                });
+            }
+        }
+
+        allComments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        res.json({ success: true, comments: allComments, total: allComments.length });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.delete("/api/admin/user/:username", requireAuth, requireAdmin, csrfProtection, (req, res) => {
+    try {
+        const targetUser = req.params.username;
+        if (targetUser === req.session.userId) {
+            return res.status(400).json({ success: false, error: "自分自身を削除することはできません" });
+        }
+
+        const users = loadUsers();
+        if (!users[targetUser]) {
+            return res.status(404).json({ success: false, error: "ユーザーが見つかりません" });
+        }
+
+        if (users[targetUser].admin) {
+            return res.status(403).json({ success: false, error: "他の管理者を削除することはできません" });
+        }
+
+        const metadata = loadMetadata();
+        const userVideos = Object.keys(metadata).filter(k => metadata[k].uploadedBy === targetUser);
+
+        for (const filename of userVideos) {
+            const filePath = path.join(uploadDir, filename);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            const videoHlsDir = path.join(hlsDir, filename);
+            if (fs.existsSync(videoHlsDir)) fs.rmSync(videoHlsDir, { recursive: true, force: true });
+            delete metadata[filename];
+        }
+        saveMetadata(metadata);
+
+        const comments = loadComments();
+        for (const filename of Object.keys(comments)) {
+            comments[filename] = comments[filename].filter(c => c.username !== targetUser);
+            if (comments[filename].length === 0) delete comments[filename];
+        }
+        saveComments(comments);
+
+        const views = loadViews();
+        for (const filename of userVideos) {
+            delete views[filename];
+        }
+        saveViews(views);
+
+        const bookmarks = loadBookmarks();
+        delete bookmarks[targetUser];
+        for (const user of Object.keys(bookmarks)) {
+            bookmarks[user] = bookmarks[user].filter(f => !userVideos.includes(f));
+        }
+        saveBookmarks(bookmarks);
+
+        const subscriptions = loadSubscriptions();
+        delete subscriptions[targetUser];
+        for (const channel of Object.keys(subscriptions)) {
+            subscriptions[channel] = subscriptions[channel].filter(s => s !== targetUser);
+        }
+        saveSubscriptions(subscriptions);
+
+        delete users[targetUser];
+        saveUsers(users);
+
+        console.log(`[ADMIN] ${req.session.userId} deleted user ${targetUser} with ${userVideos.length} videos`);
+        res.json({ success: true, deletedVideos: userVideos.length });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.delete("/api/admin/video/:filename", requireAuth, requireAdmin, csrfProtection, (req, res) => {
+    try {
+        const metadata = loadMetadata();
+        const filename = req.params.filename;
+
+        if (!metadata[filename]) {
+            return res.status(404).json({ success: false, error: "動画が見つかりません" });
+        }
+
+        const filePath = path.join(uploadDir, filename);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        const videoHlsDir = path.join(hlsDir, filename);
+        if (fs.existsSync(videoHlsDir)) fs.rmSync(videoHlsDir, { recursive: true, force: true });
+
+        delete metadata[filename];
+        saveMetadata(metadata);
+
+        const comments = loadComments();
+        delete comments[filename];
+        saveComments(comments);
+
+        const views = loadViews();
+        delete views[filename];
+        saveViews(views);
+
+        const bookmarks = loadBookmarks();
+        for (const user of Object.keys(bookmarks)) {
+            const idx = bookmarks[user].indexOf(filename);
+            if (idx !== -1) bookmarks[user].splice(idx, 1);
+        }
+        saveBookmarks(bookmarks);
+
+        console.log(`[ADMIN] ${req.session.userId} deleted video ${filename}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.delete("/api/admin/video/:filename/comment/:id", requireAuth, requireAdmin, csrfProtection, (req, res) => {
+    try {
+        const comments = loadComments();
+        const list = comments[req.params.filename];
+        if (!list) {
+            return res.status(404).json({ success: false, error: "コメントが見つかりません" });
+        }
+
+        const idx = list.findIndex(c => c.id === req.params.id);
+        if (idx === -1) {
+            return res.status(404).json({ success: false, error: "コメントが見つかりません" });
+        }
+
+        const removed = list.splice(idx, 1)[0];
+        if (list.length === 0) delete comments[req.params.filename];
+        saveComments(comments);
+
+        console.log(`[ADMIN] ${req.session.userId} deleted comment ${req.params.id} by ${removed.username} on ${req.params.filename}`);
+        res.json({ success: true });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
