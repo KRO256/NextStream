@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcrypt");
 const session = require("express-session");
+const { spawn } = require("child_process");
 
 const app = express();
 const PORT = 3000;
@@ -26,6 +27,7 @@ app.use(session({
 }));
 
 const uploadDir = path.join(__dirname, "uploads");
+const hlsDir = path.join(uploadDir, "hls");
 const tempDir = path.join(__dirname, "temp");
 const chunksDir = path.join(__dirname, "chunks");
 const metadataPath = path.join(__dirname, "videos.json");
@@ -35,7 +37,7 @@ const viewsPath = path.join(__dirname, "views.json");
 const commentsPath = path.join(__dirname, "comments.json");
 const bookmarksPath = path.join(__dirname, "bookmarks.json");
 
-[uploadDir, tempDir, chunksDir].forEach(dir => {
+[uploadDir, hlsDir, tempDir, chunksDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir);
     }
@@ -150,6 +152,7 @@ function rateLimit({ windowMs, max, keyFn, message }) {
 }
 
 app.use("/videos", express.static(uploadDir));
+app.use("/hls", express.static(hlsDir));
 app.use(express.static("public"));
 
 const storage = multer.diskStorage({
@@ -289,6 +292,17 @@ app.delete("/api/account", requireAuth, async (req, res) => {
     }
 });
 
+function readVideoFiles() {
+    return fs.readdirSync(uploadDir).filter(f => {
+        try { return fs.statSync(path.join(uploadDir, f)).isFile(); }
+        catch { return false; }
+    });
+}
+
+function getVideoUrl(file, meta) {
+    return meta && meta.hls ? "/hls/" + file + "/index.m3u8" : "/videos/" + file;
+}
+
 app.post("/upload-chunk", requireAuth, rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 5,
@@ -373,6 +387,42 @@ app.post("/upload-chunk", requireAuth, rateLimit({
                 saveMetadata(metadata);
 
                 console.log("UPLOAD COMPLETE:", safeName);
+
+                const videoHlsDir = path.join(hlsDir, safeName);
+                if (!fs.existsSync(videoHlsDir)) {
+                    fs.mkdirSync(videoHlsDir);
+                }
+
+                const ffmpeg = spawn("ffmpeg", [
+                    "-i", finalPath,
+                    "-c:v", "libx264",
+                    "-preset", "fast",
+                    "-crf", "23",
+                    "-c:a", "aac",
+                    "-b:a", "128k",
+                    "-hls_time", "10",
+                    "-hls_playlist_type", "vod",
+                    "-hls_segment_filename",
+                    path.join(videoHlsDir, "segment_%03d.ts"),
+                    path.join(videoHlsDir, "index.m3u8")
+                ]);
+
+                ffmpeg.stderr.on("data", data => {
+                    console.log("ffmpeg:", data.toString());
+                });
+
+                ffmpeg.on("close", code => {
+                    if (code === 0) {
+                        const meta = loadMetadata();
+                        if (meta[safeName]) {
+                            meta[safeName].hls = true;
+                            saveMetadata(meta);
+                        }
+                        console.log("HLS READY:", safeName);
+                    } else {
+                        console.error("ffmpeg failed for", safeName, "code:", code);
+                    }
+                });
             });
         }
 
@@ -507,13 +557,13 @@ app.get("/api/bookmarks", requireAuth, (req, res) => {
     try {
         const bookmarks = loadBookmarks();
         const userBookmarks = bookmarks[req.session.userId] || [];
-        const files = fs.readdirSync(uploadDir);
+        const files = readVideoFiles();
         const metadata = loadMetadata();
         const videos = userBookmarks
             .filter(file => files.includes(file) && metadata[file])
             .map(file => ({
                 name: file,
-                url: "/videos/" + file,
+                url: getVideoUrl(file, metadata[file]),
                 title: metadata[file]?.title || file,
                 tags: metadata[file]?.tags || [],
                 uploadedBy: metadata[file]?.uploadedBy || null,
@@ -732,6 +782,11 @@ app.delete("/api/video/:filename", requireAuth, (req, res) => {
             fs.unlinkSync(filePath);
         }
 
+        const videoHlsDir = path.join(hlsDir, req.params.filename);
+        if (fs.existsSync(videoHlsDir)) {
+            fs.rmSync(videoHlsDir, { recursive: true, force: true });
+        }
+
         delete metadata[req.params.filename];
         saveMetadata(metadata);
 
@@ -761,7 +816,7 @@ app.delete("/api/video/:filename", requireAuth, (req, res) => {
 
 app.get("/list", (req, res) => {
 
-    const files = fs.readdirSync(uploadDir);
+    const files = readVideoFiles();
 
     const metadata = loadMetadata();
     const bookmarks = loadBookmarks();
@@ -769,7 +824,7 @@ app.get("/list", (req, res) => {
 
     const videos = files.map(file => ({
         name: file,
-        url: "/videos/" + file,
+        url: getVideoUrl(file, metadata[file]),
         title: metadata[file]?.title || file,
         tags: metadata[file]?.tags || [],
         uploadedBy: metadata[file]?.uploadedBy || null,
@@ -793,7 +848,7 @@ app.get("/list", (req, res) => {
 
 app.get("/channel/:username", (req, res) => {
     const username = req.params.username;
-    const files = fs.readdirSync(uploadDir);
+    const files = readVideoFiles();
     const metadata = loadMetadata();
     const bookmarks = loadBookmarks();
     const userBookmarks = bookmarks[req.session.userId] || [];
@@ -803,7 +858,7 @@ app.get("/channel/:username", (req, res) => {
         return meta && meta.uploadedBy === username;
     }).map(file => ({
         name: file,
-        url: "/videos/" + file,
+        url: getVideoUrl(file, metadata[file]),
         title: metadata[file]?.title || file,
         tags: metadata[file]?.tags || [],
         uploadedBy: metadata[file]?.uploadedBy || null,
@@ -833,7 +888,7 @@ app.get("/search", (req, res) => {
         return res.json({ videos: [], total: 0, page: 1, limit: 30, totalPages: 0 });
     }
 
-    const files = fs.readdirSync(uploadDir);
+    const files = readVideoFiles();
     const metadata = loadMetadata();
     const bookmarks = loadBookmarks();
     const userBookmarks = bookmarks[req.session.userId] || [];
@@ -844,7 +899,7 @@ app.get("/search", (req, res) => {
         return meta.tags.some(tag => tag.toLowerCase().includes(q));
     }).map(file => ({
         name: file,
-        url: "/videos/" + file,
+        url: getVideoUrl(file, metadata[file]),
         title: metadata[file]?.title || file,
         tags: metadata[file]?.tags || [],
         uploadedBy: metadata[file]?.uploadedBy || null,
@@ -880,7 +935,7 @@ app.get("/api/ranking", (req, res) => {
             default: cutoff = 0;
         }
 
-        const files = fs.readdirSync(uploadDir);
+        const files = readVideoFiles();
         const metadata = loadMetadata();
         const views = loadViews();
         const bookmarks = loadBookmarks();
@@ -900,7 +955,7 @@ app.get("/api/ranking", (req, res) => {
 
             return {
                 name: file,
-                url: "/videos/" + file,
+                url: getVideoUrl(file, meta),
                 title: meta?.title || file,
                 tags: meta?.tags || [],
                 uploadedBy: meta?.uploadedBy || null,

@@ -9,9 +9,11 @@ content="width=device-width,initial-scale=1.0">
 
 <title>NextStream</title>
 
+<script src="https://cdn.jsdelivr.net/npm/hls.js@0.14.17"></script>
+
 <link
-rel="preconnect"
-href="https://fonts.googleapis.com">
+  rel="preconnect"
+  href="https://fonts.googleapis.com">
 
 <link
 rel="preconnect"
@@ -1427,7 +1429,7 @@ function renderVideoList(videos, emptyMessage, showRank) {
             <video
             controls
             preload="metadata"
-            src="${video.url}">
+            data-url="${video.url}">
             </video>
         </div>
         <div class="cardBody">
@@ -1505,6 +1507,20 @@ function renderVideoList(videos, emptyMessage, showRank) {
         });
 
         const videoEl = div.querySelector("video");
+        const videoUrl = videoEl.dataset.url;
+        if (videoUrl.endsWith(".m3u8")) {
+            if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
+                videoEl.src = videoUrl;
+            } else if (window.Hls && Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(videoUrl);
+                hls.attachMedia(videoEl);
+            } else {
+                videoEl.src = videoUrl;
+            }
+        } else {
+            videoEl.src = videoUrl;
+        }
         let viewCounted = false;
         videoEl.addEventListener("play", async function() {
             if (viewCounted) return;
