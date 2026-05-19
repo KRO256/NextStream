@@ -33,6 +33,7 @@ const usersPath = path.join(__dirname, "users.json");
 const subscriptionsPath = path.join(__dirname, "subscriptions.json");
 const viewsPath = path.join(__dirname, "views.json");
 const commentsPath = path.join(__dirname, "comments.json");
+const bookmarksPath = path.join(__dirname, "bookmarks.json");
 
 [uploadDir, tempDir, chunksDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
@@ -98,6 +99,18 @@ function loadComments() {
 
 function saveComments(data) {
     fs.writeFileSync(commentsPath, JSON.stringify(data, null, 2));
+}
+
+function loadBookmarks() {
+    try {
+        return JSON.parse(fs.readFileSync(bookmarksPath, "utf8"));
+    } catch {
+        return {};
+    }
+}
+
+function saveBookmarks(data) {
+    fs.writeFileSync(bookmarksPath, JSON.stringify(data, null, 2));
 }
 
 function requireAuth(req, res, next) {
@@ -418,6 +431,57 @@ app.post("/api/video/:filename/like", requireAuth, (req, res) => {
     }
 });
 
+app.post("/api/video/:filename/bookmark", requireAuth, (req, res) => {
+    try {
+        const bookmarks = loadBookmarks();
+        const user = req.session.userId;
+        if (!bookmarks[user]) {
+            bookmarks[user] = [];
+        }
+        const idx = bookmarks[user].indexOf(req.params.filename);
+        if (idx === -1) {
+            bookmarks[user].push(req.params.filename);
+        } else {
+            bookmarks[user].splice(idx, 1);
+        }
+        saveBookmarks(bookmarks);
+        res.json({
+            success: true,
+            bookmarked: idx === -1
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/bookmarks", requireAuth, (req, res) => {
+    try {
+        const bookmarks = loadBookmarks();
+        const userBookmarks = bookmarks[req.session.userId] || [];
+        const files = fs.readdirSync(uploadDir);
+        const metadata = loadMetadata();
+        const videos = userBookmarks
+            .filter(file => files.includes(file) && metadata[file])
+            .map(file => ({
+                name: file,
+                url: "/videos/" + file,
+                title: metadata[file]?.title || file,
+                tags: metadata[file]?.tags || [],
+                uploadedBy: metadata[file]?.uploadedBy || null,
+                likes: metadata[file]?.likes?.length || 0,
+                likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false,
+                bookmarkedByUser: true,
+                views: metadata[file]?.views || 0
+            }));
+        videos.reverse();
+        res.json(videos);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 app.post("/api/channel/:username/subscribe", requireAuth, (req, res) => {
     try {
         const channel = req.params.username;
@@ -594,6 +658,8 @@ app.get("/list", (req, res) => {
     const files = fs.readdirSync(uploadDir);
 
     const metadata = loadMetadata();
+    const bookmarks = loadBookmarks();
+    const userBookmarks = bookmarks[req.session.userId] || [];
 
     const videos = files.map(file => ({
         name: file,
@@ -603,6 +669,7 @@ app.get("/list", (req, res) => {
         uploadedBy: metadata[file]?.uploadedBy || null,
         likes: metadata[file]?.likes?.length || 0,
         likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false,
+        bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
         views: metadata[file]?.views || 0
     }));
 
@@ -615,6 +682,8 @@ app.get("/channel/:username", (req, res) => {
     const username = req.params.username;
     const files = fs.readdirSync(uploadDir);
     const metadata = loadMetadata();
+    const bookmarks = loadBookmarks();
+    const userBookmarks = bookmarks[req.session.userId] || [];
 
     const videos = files.filter(file => {
         const meta = metadata[file];
@@ -627,6 +696,7 @@ app.get("/channel/:username", (req, res) => {
         uploadedBy: metadata[file]?.uploadedBy || null,
         likes: metadata[file]?.likes?.length || 0,
         likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false,
+        bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
         views: metadata[file]?.views || 0
     }));
 
@@ -644,6 +714,8 @@ app.get("/search", (req, res) => {
 
     const files = fs.readdirSync(uploadDir);
     const metadata = loadMetadata();
+    const bookmarks = loadBookmarks();
+    const userBookmarks = bookmarks[req.session.userId] || [];
 
     const results = files.filter(file => {
         const meta = metadata[file];
@@ -657,6 +729,7 @@ app.get("/search", (req, res) => {
         uploadedBy: metadata[file]?.uploadedBy || null,
         likes: metadata[file]?.likes?.length || 0,
         likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false,
+        bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
         views: metadata[file]?.views || 0
     }));
 
@@ -681,6 +754,8 @@ app.get("/api/ranking", (req, res) => {
         const files = fs.readdirSync(uploadDir);
         const metadata = loadMetadata();
         const views = loadViews();
+        const bookmarks = loadBookmarks();
+        const userBookmarks = bookmarks[req.session.userId] || [];
 
         const videos = files.map(file => {
             const meta = metadata[file];
@@ -702,6 +777,7 @@ app.get("/api/ranking", (req, res) => {
                 uploadedBy: meta?.uploadedBy || null,
                 likes: meta?.likes?.length || 0,
                 likedByUser: req.session.userId && meta?.likes?.includes(req.session.userId) || false,
+                bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
                 views: periodViews,
                 totalViews: meta?.views || 0
             };
