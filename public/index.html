@@ -583,6 +583,17 @@ video{
     opacity:0.9;
 }
 
+.commentCharCount{
+    font-size:11px;
+    color:#6c6c82;
+    align-self:flex-end;
+    flex-shrink:0;
+}
+
+.commentCharCount.over{
+    color:#e53935;
+}
+
 .commentEmpty{
     color:#6c6c82;
     font-size:13px;
@@ -1392,8 +1403,9 @@ function renderVideoList(videos, emptyMessage, showRank) {
                 <summary>コメントを見る</summary>
                 <div class="commentList"></div>
                 <div class="commentForm">
-                    <textarea class="commentInput" placeholder="コメントを入力..." rows="1"></textarea>
+                    <textarea class="commentInput" placeholder="コメントを入力..." rows="1" maxlength="500"></textarea>
                     <button class="commentSubmitBtn" onclick="postComment(this)">投稿</button>
+                    <span class="commentCharCount">0/500</span>
                 </div>
             </details>
         </div>
@@ -1429,6 +1441,11 @@ function renderVideoList(videos, emptyMessage, showRank) {
         });
 
         const commentInput = detailsEl.querySelector(".commentInput");
+        const counterEl = detailsEl.querySelector(".commentCharCount");
+        commentInput.addEventListener("input", function() {
+            counterEl.textContent = this.value.length + "/500";
+            counterEl.classList.toggle("over", this.value.length >= 500);
+        });
         commentInput.addEventListener("keydown", function(e) {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -1576,6 +1593,10 @@ async function postComment(btn) {
     const input = detailsEl.querySelector(".commentInput");
     const text = input.value.trim();
     if (!text) return;
+    if (text.length > 500) {
+        alert("コメントは500文字以内で入力してください");
+        return;
+    }
 
     if (!currentUser) {
         openAuthModal();
@@ -1595,6 +1616,9 @@ async function postComment(btn) {
         const data = await res.json();
         if (data.success) {
             input.value = "";
+            const counterEl = detailsEl.querySelector(".commentCharCount");
+            counterEl.textContent = "0/500";
+            counterEl.classList.remove("over");
             const listEl = detailsEl.querySelector(".commentList");
             const emptyEl = listEl.querySelector(".commentEmpty");
             if (emptyEl) {
