@@ -1445,84 +1445,6 @@ document.addEventListener("keydown", function(e) {
     }
 });
 
-function startEditTitle(el) {
-
-    const filename =
-    el.dataset.filename;
-
-    const current =
-    el.textContent;
-
-    const input =
-    document.createElement("input");
-
-    input.type = "text";
-
-    input.className = "titleInput";
-
-    input.style.width = "100%";
-
-    input.style.padding = "6px 10px";
-
-    input.style.fontSize = "15px";
-
-    input.style.fontWeight = "600";
-
-    input.value = current;
-
-    el.textContent = "";
-
-    el.appendChild(input);
-
-    input.focus();
-
-    input.select();
-
-    async function save() {
-
-        const val =
-        input.value.trim() || current;
-
-        if (val.length > 100) {
-            alert("タイトルは100文字以内で入力してください");
-            input.focus();
-            return;
-        }
-
-        await fetch(
-            "/video/" +
-            encodeURIComponent(filename),
-            {
-                method:"PATCH",
-                headers:{
-                    "Content-Type":
-                    "application/json"
-                },
-                body:JSON.stringify({
-                    title:val
-                })
-            }
-        );
-
-        el.textContent = val;
-    }
-
-    input.addEventListener("blur", save);
-
-    input.addEventListener(
-        "keydown",
-        function(e) {
-            if (e.key === "Enter") {
-                input.blur();
-            }
-
-            if (e.key === "Escape") {
-                el.textContent = current;
-            }
-        }
-    );
-}
-
 function startEditTags(el) {
 
     const filename =
@@ -1625,6 +1547,11 @@ function startEditTags(el) {
 
 async function searchVideos() {
     document.getElementById("videoPage").classList.remove("active");
+    document.getElementById("videos").style.display = "";
+    document.querySelector(".hero").style.display = "";
+    document.getElementById("tabBar").style.display = "";
+    const pag = document.getElementById("pagination");
+    if (pag) pag.style.display = "";
     currentView = 'search';
 
     const q =
@@ -2303,8 +2230,8 @@ function renderVideoDetail(video) {
             el.addEventListener("click", function() {
                 document.getElementById("searchInput").value = this.textContent;
                 currentPage = 1;
-                goBack();
-                setTimeout(() => searchVideos(), 100);
+                currentSearchQuery = this.textContent;
+                searchVideos();
             });
         });
     } else {
@@ -2320,8 +2247,7 @@ function renderVideoDetail(video) {
     if (chLink) {
         chLink.addEventListener("click", function() {
             currentPage = 1;
-            goBack();
-            setTimeout(() => showChannel(video.uploadedBy), 100);
+            showChannel(video.uploadedBy);
         });
     }
 
