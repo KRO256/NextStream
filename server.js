@@ -653,6 +653,51 @@ app.post("/api/video/:filename/view", (req, res) => {
     }
 });
 
+app.delete("/api/video/:filename", requireAuth, (req, res) => {
+    try {
+        const metadata = loadMetadata();
+        const video = metadata[req.params.filename];
+
+        if (!video) {
+            return res.status(404).json({ success: false, error: "Video not found" });
+        }
+
+        if (video.uploadedBy !== req.session.userId) {
+            return res.status(403).json({ success: false, error: "自分の動画のみ削除できます" });
+        }
+
+        const filePath = path.join(uploadDir, req.params.filename);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        delete metadata[req.params.filename];
+        saveMetadata(metadata);
+
+        const comments = loadComments();
+        delete comments[req.params.filename];
+        saveComments(comments);
+
+        const views = loadViews();
+        delete views[req.params.filename];
+        saveViews(views);
+
+        const bookmarks = loadBookmarks();
+        for (const user of Object.keys(bookmarks)) {
+            const idx = bookmarks[user].indexOf(req.params.filename);
+            if (idx !== -1) {
+                bookmarks[user].splice(idx, 1);
+            }
+        }
+        saveBookmarks(bookmarks);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 app.get("/list", (req, res) => {
 
     const files = fs.readdirSync(uploadDir);

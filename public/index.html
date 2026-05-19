@@ -111,6 +111,26 @@ header{
     background:linear-gradient(135deg,#e53935,#c62828);
 }
 
+.deleteVideoBtn{
+    background:rgba(229,57,53,0.15);
+    border:1px solid rgba(229,57,53,0.3);
+    color:#ef5350;
+    padding:4px 10px;
+    border-radius:8px;
+    font-size:11px;
+    font-weight:500;
+    cursor:pointer;
+    transition:0.2s;
+    white-space:nowrap;
+    font-family:"Inter",sans-serif;
+    flex-shrink:0;
+}
+
+.deleteVideoBtn:hover{
+    background:rgba(229,57,53,0.3);
+    border-color:#e53935;
+}
+
 .uploadBtn.secondary{
     background:linear-gradient(135deg,#555,#777);
 }
@@ -1350,8 +1370,11 @@ function renderVideoList(videos, emptyMessage, showRank) {
             </video>
         </div>
         <div class="cardBody">
-            <div class="videoName" data-filename="${video.name}">
-                ${video.title}
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+                <div class="videoName" data-filename="${video.name}" style="flex:1">
+                    ${video.title}
+                </div>
+                ${currentUser === video.uploadedBy ? `<button class="deleteVideoBtn" data-filename="${video.name}" onclick="deleteVideo(this)">🗑 削除</button>` : ""}
             </div>
             ${tagsHtml}
             <div class="videoMeta">
@@ -1666,6 +1689,25 @@ async function showRanking(period) {
         renderVideoList(videos, 'ランキング（' + periodLabels[period] + '）の動画はまだありません', true);
     } catch (e) {
         console.error(e);
+    }
+}
+
+async function deleteVideo(btn) {
+    const filename = btn.dataset.filename;
+    if (!confirm("この動画を削除しますか？")) return;
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(filename), {
+            method: "DELETE"
+        });
+        const data = await res.json();
+        if (data.success) {
+            btn.closest(".card").remove();
+        } else {
+            alert(data.error || "エラーが発生しました");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("通信エラーが発生しました");
     }
 }
 
