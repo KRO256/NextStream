@@ -266,6 +266,42 @@ header{
     gap:28px;
 }
 
+.pagination{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    padding:24px;
+    margin-top:-40px;
+}
+
+.pageBtn{
+    background:rgba(124,77,255,0.15);
+    color:#fff;
+    border:1px solid rgba(124,77,255,0.3);
+    border-radius:10px;
+    padding:8px 20px;
+    font-size:14px;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.pageBtn:hover:not(:disabled){
+    background:rgba(124,77,255,0.3);
+}
+
+.pageBtn:disabled{
+    opacity:0.35;
+    cursor:default;
+}
+
+.pageInfo{
+    font-size:14px;
+    color:rgba(255,255,255,0.6);
+    min-width:100px;
+    text-align:center;
+}
+
 .card{
     background:
     rgba(255,255,255,0.04);
@@ -774,7 +810,7 @@ NextStream
 <button
 id="bookmarkBtn"
 class="uploadBtn secondary"
-onclick="showBookmarks()"
+onclick="currentPage=1;showBookmarks()"
 style="display:none">
 
 ☆ ブックマーク
@@ -790,7 +826,7 @@ placeholder="タグで検索">
 <button
 id="searchBtn"
 class="uploadBtn"
-onclick="searchVideos()">
+onclick="currentPage=1;searchVideos()">
 
 検索
 
@@ -842,11 +878,15 @@ onclick="clearSearch()">
 
 <div class="tabBar" id="tabBar">
     <button class="tab active" data-view="all" onclick="showAllVideos()">すべて</button>
-    <button class="tab" data-view="ranking" data-period="all" onclick="showRanking('all')">全期間</button>
-    <button class="tab" data-view="ranking" data-period="year" onclick="showRanking('year')">１年</button>
-    <button class="tab" data-view="ranking" data-period="month" onclick="showRanking('month')">１ヶ月</button>
-    <button class="tab" data-view="ranking" data-period="week" onclick="showRanking('week')">１週間</button>
-    <button class="tab" data-view="ranking" data-period="day" onclick="showRanking('day')">１日</button>
+    <button class="tab" data-view="ranking" data-period="all" onclick="currentPage=1;showRanking('all')">全期間</button>
+
+    <button class="tab" data-view="ranking" data-period="year" onclick="currentPage=1;showRanking('year')">１年</button>
+
+    <button class="tab" data-view="ranking" data-period="month" onclick="currentPage=1;showRanking('month')">１ヶ月</button>
+
+    <button class="tab" data-view="ranking" data-period="week" onclick="currentPage=1;showRanking('week')">１週間</button>
+
+    <button class="tab" data-view="ranking" data-period="day" onclick="currentPage=1;showRanking('day')">１日</button>
 </div>
 
 <div id="videos"></div>
@@ -958,6 +998,10 @@ onclick="deleteAccount()">
 let currentUser = null;
 let isLoginMode = true;
 let currentChannel = null;
+let currentPage = 1;
+let totalPages = 1;
+let currentView = 'all'; // 'all' | 'channel' | 'search' | 'ranking' | 'bookmarks'
+let currentSearchQuery = '';
 
 async function checkAuth() {
     try {
@@ -1307,21 +1351,26 @@ function startEditTags(el) {
 
 async function searchVideos() {
 
+    currentView = 'search';
+
     const q =
     document.getElementById("searchInput").value.trim();
 
     if (!q) {
-
         loadVideos();
-
         return;
     }
 
-    const res =
-    await fetch("/search?q=" + encodeURIComponent(q));
+    currentSearchQuery = q;
 
-    const videos =
+    const res =
+    await fetch(`/search?q=${encodeURIComponent(q)}&page=${currentPage}&limit=30`);
+
+    const data =
     await res.json();
+
+    currentPage = data.page;
+    totalPages = data.totalPages;
 
     document.getElementById("searchBtn").style.display = "none";
     document.getElementById("clearSearchBtn").style.display = "";
@@ -1333,7 +1382,7 @@ async function searchVideos() {
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     document.querySelector('.tab[data-view="all"]').classList.add("active");
 
-    renderVideoList(videos, `「${q}」に一致する動画はありません`);
+    renderVideoList(data.videos, `「${q}」に一致する動画はありません`);
 }
 
 function clearSearch() {
@@ -1352,6 +1401,7 @@ function renderVideoList(videos, emptyMessage, showRank) {
 
     if (videos.length === 0) {
         container.innerHTML = `<div class="empty">${emptyMessage}</div>`;
+        updatePagination();
         return;
     }
 
@@ -1428,6 +1478,7 @@ function renderVideoList(videos, emptyMessage, showRank) {
         if (channelEl) {
             channelEl.addEventListener("click", function(e) {
                 e.stopPropagation();
+                currentPage = 1;
                 showChannel(video.uploadedBy);
             });
         }
@@ -1477,10 +1528,70 @@ function renderVideoList(videos, emptyMessage, showRank) {
 
         container.appendChild(div);
     });
+
+    updatePagination();
+}
+
+function updatePagination() {
+    const existing = document.getElementById("pagination");
+    if (existing) existing.remove();
+
+    if (totalPages <= 1) return;
+
+    const nav = document.createElement("div");
+    nav.id = "pagination";
+    nav.className = "pagination";
+
+    const prevBtn = document.createElement("button");
+    prevBtn.className = "pageBtn";
+    prevBtn.textContent = "← 前へ";
+    prevBtn.disabled = currentPage <= 1;
+    prevBtn.onclick = () => goToPage(currentPage - 1);
+
+    const info = document.createElement("span");
+    info.className = "pageInfo";
+    info.textContent = currentPage + " / " + totalPages;
+
+    const nextBtn = document.createElement("button");
+    nextBtn.className = "pageBtn";
+    nextBtn.textContent = "次へ →";
+    nextBtn.disabled = currentPage >= totalPages;
+    nextBtn.onclick = () => goToPage(currentPage + 1);
+
+    nav.appendChild(prevBtn);
+    nav.appendChild(info);
+    nav.appendChild(nextBtn);
+
+    const videosEl = document.getElementById("videos");
+    videosEl.parentNode.insertBefore(nav, videosEl.nextSibling);
+}
+
+async function goToPage(page) {
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+
+    switch (currentView) {
+        case 'all':
+            await loadVideos();
+            break;
+        case 'channel':
+            await showChannel(currentChannel);
+            break;
+        case 'search':
+            await searchVideos();
+            break;
+        case 'ranking':
+            await showRanking(currentPeriod);
+            break;
+        case 'bookmarks':
+            await showBookmarks();
+            break;
+    }
 }
 
 async function showChannel(username) {
     currentChannel = username;
+    currentView = 'channel';
 
     document.getElementById("searchBtn").style.display = "";
     document.getElementById("clearSearchBtn").style.display = "none";
@@ -1495,13 +1606,16 @@ async function showChannel(username) {
     header.style.display = "block";
 
     const [videosRes, subsRes] = await Promise.all([
-        fetch("/channel/" + encodeURIComponent(username)),
+        fetch(`/channel/${encodeURIComponent(username)}?page=${currentPage}&limit=30`),
         fetch("/api/channel/" + encodeURIComponent(username) + "/subscribers")
     ]);
-    const videos = await videosRes.json();
+    const data = await videosRes.json();
     const subsData = await subsRes.json();
 
-    renderVideoList(videos, "このチャンネルにはまだ動画がありません");
+    currentPage = data.page;
+    totalPages = data.totalPages;
+
+    renderVideoList(data.videos, "このチャンネルにはまだ動画がありません");
     updateSubscribeButton(username, subsData);
 }
 
@@ -1548,14 +1662,18 @@ async function loadVideos() {
 
     document.getElementById("channelHeader").style.display = "none";
     currentChannel = null;
+    currentView = 'all';
 
     const res =
-    await fetch("/list");
+    await fetch(`/list?page=${currentPage}&limit=30`);
 
-    const videos =
+    const data =
     await res.json();
 
-    renderVideoList(videos, "まだ動画がありません");
+    currentPage = data.page;
+    totalPages = data.totalPages;
+
+    renderVideoList(data.videos, "まだ動画がありません");
 }
 
 async function loadComments(detailsEl) {
@@ -1680,6 +1798,7 @@ let currentPeriod = null;
 
 async function showAllVideos() {
     currentPeriod = null;
+    currentPage = 1;
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     document.querySelector('.tab[data-view="all"]').classList.add("active");
     document.getElementById("channelHeader").style.display = "none";
@@ -1691,6 +1810,7 @@ async function showAllVideos() {
 
 async function showRanking(period) {
     currentPeriod = period;
+    currentView = 'ranking';
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     document.querySelector(`.tab[data-period="${period}"]`).classList.add("active");
     document.getElementById("channelHeader").style.display = "none";
@@ -1708,9 +1828,11 @@ async function showRanking(period) {
     document.querySelector(".heroTitle").innerHTML = '<span>' + periodLabels[period] + 'ランキング</span>';
 
     try {
-        const res = await fetch("/api/ranking?period=" + period);
-        const videos = await res.json();
-        renderVideoList(videos, 'ランキング（' + periodLabels[period] + '）の動画はまだありません', true);
+        const res = await fetch(`/api/ranking?period=${period}&page=${currentPage}&limit=30`);
+        const data = await res.json();
+        currentPage = data.page;
+        totalPages = data.totalPages;
+        renderVideoList(data.videos, 'ランキング（' + periodLabels[period] + '）の動画はまだありません', true);
     } catch (e) {
         console.error(e);
     }
@@ -1757,6 +1879,7 @@ async function showBookmarks() {
         openAuthModal();
         return;
     }
+    currentView = 'bookmarks';
     document.getElementById("searchBtn").style.display = "";
     document.getElementById("clearSearchBtn").style.display = "none";
     document.getElementById("searchInput").value = "";
@@ -1767,9 +1890,11 @@ async function showBookmarks() {
     document.querySelector(".hero").style.display = "none";
 
     try {
-        const res = await fetch("/api/bookmarks");
-        const videos = await res.json();
-        renderVideoList(videos, "ブックマークした動画はまだありません");
+        const res = await fetch(`/api/bookmarks?page=${currentPage}&limit=30`);
+        const data = await res.json();
+        currentPage = data.page;
+        totalPages = data.totalPages;
+        renderVideoList(data.videos, "ブックマークした動画はまだありません");
     } catch (e) {
         console.error(e);
     }

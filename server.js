@@ -523,7 +523,15 @@ app.get("/api/bookmarks", requireAuth, (req, res) => {
                 views: metadata[file]?.views || 0
             }));
         videos.reverse();
-        res.json(videos);
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = Math.min(parseInt(req.query.limit) || 30, 100);
+        const start = (page - 1) * limit;
+        const total = videos.length;
+        const totalPages = Math.ceil(total / limit);
+        const paged = videos.slice(start, start + limit);
+
+        res.json({ videos: paged, total, page, limit, totalPages });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
@@ -773,7 +781,14 @@ app.get("/list", (req, res) => {
 
     videos.reverse();
 
-    res.json(videos);
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 30, 100);
+    const start = (page - 1) * limit;
+    const total = videos.length;
+    const totalPages = Math.ceil(total / limit);
+    const paged = videos.slice(start, start + limit);
+
+    res.json({ videos: paged, total, page, limit, totalPages });
 });
 
 app.get("/channel/:username", (req, res) => {
@@ -799,7 +814,15 @@ app.get("/channel/:username", (req, res) => {
     }));
 
     videos.reverse();
-    res.json(videos);
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 30, 100);
+    const start = (page - 1) * limit;
+    const total = videos.length;
+    const totalPages = Math.ceil(total / limit);
+    const paged = videos.slice(start, start + limit);
+
+    res.json({ videos: paged, total, page, limit, totalPages });
 });
 
 app.get("/search", (req, res) => {
@@ -807,7 +830,7 @@ app.get("/search", (req, res) => {
     const q = (req.query.q || "").toLowerCase().trim();
 
     if (!q) {
-        return res.json([]);
+        return res.json({ videos: [], total: 0, page: 1, limit: 30, totalPages: 0 });
     }
 
     const files = fs.readdirSync(uploadDir);
@@ -832,7 +855,15 @@ app.get("/search", (req, res) => {
     }));
 
     results.reverse();
-    res.json(results);
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 30, 100);
+    const start = (page - 1) * limit;
+    const total = results.length;
+    const totalPages = Math.ceil(total / limit);
+    const paged = results.slice(start, start + limit);
+
+    res.json({ videos: paged, total, page, limit, totalPages });
 });
 
 app.get("/api/ranking", (req, res) => {
@@ -883,7 +914,14 @@ app.get("/api/ranking", (req, res) => {
 
         videos.sort((a, b) => b.views - a.views);
 
-        res.json(videos);
+        const page = parseInt(req.query.page) || 1;
+        const limit = Math.min(parseInt(req.query.limit) || 30, 100);
+        const start = (page - 1) * limit;
+        const total = videos.length;
+        const totalPages = Math.ceil(total / limit);
+        const paged = videos.slice(start, start + limit);
+
+        res.json({ videos: paged, total, page, limit, totalPages });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
