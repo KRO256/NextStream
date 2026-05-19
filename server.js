@@ -814,6 +814,35 @@ app.delete("/api/video/:filename", requireAuth, (req, res) => {
     }
 });
 
+app.get("/api/video/:filename", (req, res) => {
+    try {
+        const metadata = loadMetadata();
+        const video = metadata[req.params.filename];
+        if (!video) {
+            return res.status(404).json({ success: false, error: "Video not found" });
+        }
+        const bookmarks = loadBookmarks();
+        const userBookmarks = bookmarks[req.session.userId] || [];
+        res.json({
+            success: true,
+            video: {
+                name: req.params.filename,
+                url: getVideoUrl(req.params.filename, video),
+                title: video.title || req.params.filename,
+                tags: video.tags || [],
+                uploadedBy: video.uploadedBy || null,
+                likes: video.likes?.length || 0,
+                likedByUser: req.session.userId && video.likes?.includes(req.session.userId) || false,
+                bookmarkedByUser: req.session.userId && userBookmarks.includes(req.params.filename) || false,
+                views: video.views || 0
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 app.get("/list", (req, res) => {
 
     const files = readVideoFiles();
@@ -981,6 +1010,10 @@ app.get("/api/ranking", (req, res) => {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
     }
+});
+
+app.get("/watch/*", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.listen(PORT, () => {

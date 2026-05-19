@@ -759,6 +759,256 @@ video{
     font-size:14px;
 }
 
+#videoPage{
+    display:none;
+    padding:24px;
+    max-width:1100px;
+    margin:0 auto;
+}
+
+#videoPage.active{
+    display:block;
+}
+
+#videoPage .backBtn{
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.08);
+    color:#a0a0b5;
+    padding:8px 18px;
+    border-radius:999px;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    transition:0.2s;
+    font-family:"Inter",sans-serif;
+    margin-bottom:20px;
+}
+
+#videoPage .backBtn:hover{
+    background:rgba(124,77,255,0.15);
+    border-color:rgba(124,77,255,0.3);
+    color:white;
+}
+
+#videoPage .playerWrap{
+    width:100%;
+    aspect-ratio:16/9;
+    background:black;
+    border-radius:16px;
+    overflow:hidden;
+}
+
+#videoPage .playerWrap video{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+}
+
+#videoPage .videoInfo{
+    margin-top:20px;
+}
+
+#videoPage .videoTitle{
+    font-size:24px;
+    font-weight:700;
+    line-height:1.3;
+    word-break:break-word;
+}
+
+#videoPage .videoTitleEditBtn{
+    background:none;
+    border:none;
+    color:#7c4dff;
+    cursor:pointer;
+    font-size:14px;
+    margin-left:10px;
+    padding:4px 8px;
+    border-radius:6px;
+    transition:0.2s;
+    vertical-align:middle;
+}
+
+#videoPage .videoTitleEditBtn:hover{
+    background:rgba(124,77,255,0.15);
+}
+
+#videoPage .videoMeta{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-top:12px;
+    color:#8c8ca3;
+    font-size:14px;
+    flex-wrap:wrap;
+}
+
+#videoPage .videoMeta .channelLink{
+    font-weight:600;
+    color:#b8b8ff;
+}
+
+#videoPage .videoActions{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:16px;
+    flex-wrap:wrap;
+}
+
+#videoPage .videoActions button{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.08);
+    color:#a0a0b5;
+    padding:8px 16px;
+    border-radius:999px;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    transition:0.2s;
+    font-family:"Inter",sans-serif;
+}
+
+#videoPage .videoActions button:hover{
+    background:rgba(124,77,255,0.15);
+    border-color:rgba(124,77,255,0.3);
+    color:white;
+}
+
+#videoPage .videoActions button.liked{
+    color:#ff4d6d;
+    border-color:rgba(255,77,109,0.3);
+    background:rgba(255,77,109,0.1);
+}
+
+#videoPage .videoActions button.liked:hover{
+    background:rgba(255,77,109,0.2);
+}
+
+#videoPage .videoActions button.bookmarked{
+    color:#ffd700;
+    border-color:rgba(255,215,0,0.3);
+    background:rgba(255,215,0,0.1);
+}
+
+#videoPage .videoActions button.bookmarked:hover{
+    background:rgba(255,215,0,0.2);
+}
+
+#videoPage .videoActions button svg{
+    width:18px;
+    height:18px;
+}
+
+#videoPage .videoActions button.liked svg{
+    fill:#ff4d6d;
+}
+
+#videoPage .videoActions button:not(.liked) svg{
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2;
+}
+
+#videoPage .videoActions button.bookmarked svg{
+    fill:#ffd700;
+}
+
+#videoPage .videoActions button:not(.bookmarked) svg{
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2;
+}
+
+#videoPage .videoTags{
+    margin-top:16px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+}
+
+#videoPage .commentsSection{
+    margin-top:24px;
+    border-top:1px solid rgba(255,255,255,0.08);
+    padding-top:20px;
+}
+
+#videoPage .commentsSection h3{
+    font-size:16px;
+    font-weight:600;
+    margin:0 0 16px;
+    color:#d0d0e0;
+}
+
+#videoPage .commentList{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-height:400px;
+    overflow-y:auto;
+}
+
+#videoPage .commentList .commentEmpty{
+    color:#6c6c82;
+    font-size:14px;
+}
+
+#videoPage .commentForm{
+    display:flex;
+    gap:8px;
+    margin-top:16px;
+}
+
+#videoPage .commentForm .commentInput{
+    flex:1;
+    background:#1a1a22;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px;
+    padding:10px 14px;
+    color:white;
+    font-family:"Inter",sans-serif;
+    font-size:14px;
+    outline:none;
+    resize:none;
+    transition:0.2s;
+    min-height:40px;
+}
+
+#videoPage .commentForm .commentInput:focus{
+    border-color:#7c4dff;
+}
+
+#videoPage .commentForm .commentSubmitBtn{
+    background:linear-gradient(135deg,#7c4dff,#5b7cff);
+    border:none;
+    color:white;
+    padding:10px 18px;
+    border-radius:12px;
+    font-weight:500;
+    font-size:14px;
+    cursor:pointer;
+    transition:0.2s;
+    font-family:"Inter",sans-serif;
+    white-space:nowrap;
+}
+
+#videoPage .commentForm .commentSubmitBtn:hover{
+    opacity:0.9;
+}
+
+#videoPage .commentForm .commentCharCount{
+    font-size:12px;
+    color:#6c6c82;
+    align-self:flex-end;
+    flex-shrink:0;
+}
+
+#videoPage .commentForm .commentCharCount.over{
+    color:#e53935;
+}
+
 @media(max-width:850px){
 
     .heroTitle{
@@ -892,6 +1142,28 @@ onclick="clearSearch()">
 </div>
 
 <div id="videos"></div>
+
+<div id="videoPage">
+    <button class="backBtn" onclick="goBack()">← 戻る</button>
+    <div class="playerWrap">
+        <video id="videoPlayer" controls preload="metadata"></video>
+    </div>
+    <div class="videoInfo">
+        <div class="videoTitle" id="videoTitle"></div>
+        <div class="videoTags" id="videoPageTags"></div>
+        <div class="videoMeta" id="videoMeta"></div>
+        <div class="videoActions" id="videoActions"></div>
+    </div>
+    <div class="commentsSection" id="videoPageComments">
+        <h3>コメント</h3>
+        <div class="commentList" id="videoCommentList"></div>
+        <div class="commentForm">
+            <textarea class="commentInput" id="videoCommentInput" placeholder="コメントを入力..." rows="1" maxlength="500"></textarea>
+            <button class="commentSubmitBtn" onclick="postVideoPageComment()">投稿</button>
+            <span class="commentCharCount" id="videoCommentCounter">0/500</span>
+        </div>
+    </div>
+</div>
 
 <div class="modalOverlay" id="authModal">
 
@@ -1352,7 +1624,7 @@ function startEditTags(el) {
 }
 
 async function searchVideos() {
-
+    document.getElementById("videoPage").classList.remove("active");
     currentView = 'search';
 
     const q =
@@ -1464,8 +1736,9 @@ function renderVideoList(videos, emptyMessage, showRank) {
         `;
 
         const titleEl = div.querySelector(".videoName");
-        titleEl.addEventListener("click", function() {
-            startEditTitle(this);
+        titleEl.addEventListener("click", function(e) {
+            e.stopPropagation();
+            navigateToVideo(video.name);
         });
 
         const tagsEl = div.querySelector(".videoTags");
@@ -1606,6 +1879,7 @@ async function goToPage(page) {
 }
 
 async function showChannel(username) {
+    document.getElementById("videoPage").classList.remove("active");
     currentChannel = username;
     currentView = 'channel';
 
@@ -1620,6 +1894,9 @@ async function showChannel(username) {
     const header = document.getElementById("channelHeader");
     document.getElementById("channelName").textContent = username + " の動画";
     header.style.display = "block";
+    document.getElementById("tabBar").style.display = "";
+    document.getElementById("videos").style.display = "";
+    document.querySelector(".hero").style.display = "";
 
     const [videosRes, subsRes] = await Promise.all([
         fetch(`/channel/${encodeURIComponent(username)}?page=${currentPage}&limit=30`),
@@ -1813,6 +2090,8 @@ async function toggleLike(btn) {
 let currentPeriod = null;
 
 async function showAllVideos() {
+    const wasVideoPage = document.getElementById("videoPage").classList.contains("active");
+    document.getElementById("videoPage").classList.remove("active");
     currentPeriod = null;
     currentPage = 1;
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
@@ -1820,11 +2099,19 @@ async function showAllVideos() {
     document.getElementById("channelHeader").style.display = "none";
     currentChannel = null;
     document.querySelector(".hero").style.display = "";
+    document.getElementById("tabBar").style.display = "";
+    document.getElementById("videos").style.display = "";
+    const pag = document.getElementById("pagination");
+    if (pag) pag.style.display = "";
     document.querySelector(".heroTitle").innerHTML = 'シンプルな<br><span>動画共有</span><br>プラットフォーム';
+    if (wasVideoPage) {
+        history.pushState({ view: "home" }, "", "/");
+    }
     loadVideos();
 }
 
 async function showRanking(period) {
+    document.getElementById("videoPage").classList.remove("active");
     currentPeriod = period;
     currentView = 'ranking';
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
@@ -1832,6 +2119,8 @@ async function showRanking(period) {
     document.getElementById("channelHeader").style.display = "none";
     currentChannel = null;
     document.querySelector(".hero").style.display = "";
+    document.getElementById("tabBar").style.display = "";
+    document.getElementById("videos").style.display = "";
 
     const periodLabels = {
         all: "全期間",
@@ -1895,6 +2184,7 @@ async function showBookmarks() {
         openAuthModal();
         return;
     }
+    document.getElementById("videoPage").classList.remove("active");
     currentView = 'bookmarks';
     document.getElementById("searchBtn").style.display = "";
     document.getElementById("clearSearchBtn").style.display = "none";
@@ -1904,6 +2194,8 @@ async function showBookmarks() {
     currentPeriod = null;
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     document.querySelector(".hero").style.display = "none";
+    document.getElementById("tabBar").style.display = "";
+    document.getElementById("videos").style.display = "";
 
     try {
         const res = await fetch(`/api/bookmarks?page=${currentPage}&limit=30`);
@@ -1916,7 +2208,373 @@ async function showBookmarks() {
     }
 }
 
-checkAuth().then(() => loadVideos());
+// --- Video detail page & routing ---
+
+let videoDetailData = null;
+
+function getFilenameFromPath() {
+    const match = window.location.pathname.match(/\/watch\/(.+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+function setupHls(videoEl, url) {
+    if (url.endsWith(".m3u8")) {
+        if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
+            videoEl.src = url;
+        } else if (window.Hls && Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(videoEl);
+        } else {
+            videoEl.src = url;
+        }
+    } else {
+        videoEl.src = url;
+    }
+}
+
+function navigateToVideo(filename) {
+    const prevState = {
+        view: currentView,
+        page: currentPage,
+        totalPages: totalPages,
+        channel: currentChannel,
+        searchQuery: currentSearchQuery,
+        period: currentPeriod,
+        scrollY: window.scrollY
+    };
+    history.pushState({ view: "video", prevState, filename }, "", "/watch/" + encodeURIComponent(filename));
+    showVideoByFilename(filename);
+}
+
+async function showVideoByFilename(filename) {
+    document.querySelector(".hero").style.display = "none";
+    document.getElementById("tabBar").style.display = "none";
+    document.getElementById("channelHeader").style.display = "none";
+    document.getElementById("videos").style.display = "none";
+    const pag = document.getElementById("pagination");
+    if (pag) pag.style.display = "none";
+
+    document.getElementById("videoPage").classList.add("active");
+    window.scrollTo(0, 0);
+
+    document.querySelector("#videoPage .playerWrap").innerHTML = '<video id="videoPlayer" controls preload="metadata"></video>';
+    document.getElementById("videoTitle").textContent = "読み込み中...";
+
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(filename));
+        const data = await res.json();
+        if (data.success) {
+            renderVideoDetail(data.video);
+        } else {
+            document.getElementById("videoTitle").textContent = "動画が見つかりません";
+        }
+    } catch (e) {
+        console.error(e);
+        document.getElementById("videoTitle").textContent = "読み込みエラー";
+    }
+}
+
+function renderVideoDetail(video) {
+    videoDetailData = video;
+    document.getElementById("videoTitle").textContent = video.title;
+
+    const videoEl = document.getElementById("videoPlayer");
+    setupHls(videoEl, video.url);
+
+    let viewCounted = false;
+    videoEl.addEventListener("play", async function() {
+        if (viewCounted) return;
+        viewCounted = true;
+        try {
+            const res = await fetch("/api/video/" + encodeURIComponent(video.name) + "/view", { method: "POST" });
+            const viewData = await res.json();
+            if (viewData.success) {
+                const viewEl = document.querySelector("#videoMeta .viewCount");
+                if (viewEl) viewEl.textContent = viewData.views + " 回視聴";
+            }
+        } catch (e) { console.error(e); }
+    });
+
+    const tagsContainer = document.getElementById("videoPageTags");
+    if (video.tags && video.tags.length) {
+        tagsContainer.innerHTML = video.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
+        tagsContainer.querySelectorAll(".tag").forEach(el => {
+            el.addEventListener("click", function() {
+                document.getElementById("searchInput").value = this.textContent;
+                currentPage = 1;
+                goBack();
+                setTimeout(() => searchVideos(), 100);
+            });
+        });
+    } else {
+        tagsContainer.innerHTML = "";
+    }
+
+    document.getElementById("videoMeta").innerHTML =
+        (video.uploadedBy
+            ? '<span class="channelLink" style="cursor:pointer;font-weight:600;color:#b8b8ff">' + escapeHtml(video.uploadedBy) + '</span>'
+            : "NextStream") +
+        ' · <span class="viewCount">' + video.views + ' 回視聴</span>';
+    const chLink = document.querySelector("#videoMeta .channelLink");
+    if (chLink) {
+        chLink.addEventListener("click", function() {
+            currentPage = 1;
+            goBack();
+            setTimeout(() => showChannel(video.uploadedBy), 100);
+        });
+    }
+
+    const likeIcon = '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+    const bookmarkIcon = '<svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>';
+
+    let actionsHtml =
+        '<button class="likeBtn' + (video.likedByUser ? ' liked' : '') + '" onclick="toggleVideoLike()">' +
+            likeIcon + ' <span id="videoLikeCount">' + video.likes + '</span></button>' +
+        '<button class="bookmarkBtn' + (video.bookmarkedByUser ? ' bookmarked' : '') + '" onclick="toggleVideoBookmark()">' +
+            bookmarkIcon + '</button>';
+    if (currentUser === video.uploadedBy) {
+        actionsHtml += '<button onclick="editVideoTitle()" title="タイトルを編集">✏️ 編集</button>';
+        actionsHtml += '<button class="deleteVideoBtn" onclick="deleteVideoFromPage()" style="background:rgba(229,57,53,0.15);border:1px solid rgba(229,57,53,0.3);color:#ef5350">🗑 削除</button>';
+    }
+    document.getElementById("videoActions").innerHTML = actionsHtml;
+
+    loadVideoPageComments(video.name);
+}
+
+async function loadVideoPageComments(filename) {
+    const listEl = document.getElementById("videoCommentList");
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(filename) + "/comments");
+        const data = await res.json();
+        if (data.success) {
+            if (data.comments.length === 0) {
+                listEl.innerHTML = '<div class="commentEmpty">コメントはまだありません</div>';
+            } else {
+                listEl.innerHTML = data.comments.map(c =>
+                    '<div class="commentItem">' +
+                        '<div class="commentAuthor">' +
+                            '<span>' + escapeHtml(c.username) + '</span>' +
+                            (currentUser === c.username
+                                ? '<button class="commentDeleteBtn" onclick="deleteVideoPageComment(\'' + filename + "', '" + c.id + "', this)\">削除</button>"
+                                : "") +
+                        '</div>' +
+                        '<div class="commentText">' + escapeHtml(c.text) + '</div>' +
+                    '</div>'
+                ).join("");
+            }
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function postVideoPageComment() {
+    const input = document.getElementById("videoCommentInput");
+    const text = input.value.trim();
+    if (!text) return;
+    if (text.length > 500) { alert("コメントは500文字以内で入力してください"); return; }
+    if (!currentUser) { openAuthModal(); return; }
+    if (!videoDetailData) return;
+
+    const btn = document.querySelector("#videoPageComments .commentSubmitBtn");
+    btn.disabled = true;
+    btn.textContent = "投稿中...";
+
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(videoDetailData.name) + "/comment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        if (data.success) {
+            input.value = "";
+            document.getElementById("videoCommentCounter").textContent = "0/500";
+            const listEl = document.getElementById("videoCommentList");
+            const emptyEl = listEl.querySelector(".commentEmpty");
+            if (emptyEl) listEl.innerHTML = "";
+            listEl.insertAdjacentHTML("beforeend",
+                '<div class="commentItem">' +
+                    '<div class="commentAuthor">' +
+                        '<span>' + escapeHtml(data.comment.username) + '</span>' +
+                        '<button class="commentDeleteBtn" onclick="deleteVideoPageComment(\'' + videoDetailData.name + "', '" + data.comment.id + "', this)\">削除</button>" +
+                    '</div>' +
+                    '<div class="commentText">' + escapeHtml(data.comment.text) + '</div>' +
+                '</div>'
+            );
+        } else {
+            alert(data.error || "エラーが発生しました");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("通信エラーが発生しました");
+    }
+    btn.disabled = false;
+    btn.textContent = "投稿";
+}
+
+async function deleteVideoPageComment(filename, id, btn) {
+    if (!confirm("このコメントを削除しますか？")) return;
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(filename) + "/comment/" + id, { method: "DELETE" });
+        const data = await res.json();
+        if (data.success) { btn.closest(".commentItem").remove(); }
+        else { alert(data.error || "エラーが発生しました"); }
+    } catch (e) { console.error(e); alert("通信エラーが発生しました"); }
+}
+
+async function toggleVideoLike() {
+    if (!videoDetailData) return;
+    if (!currentUser) { openAuthModal(); return; }
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(videoDetailData.name) + "/like", { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+            document.querySelector("#videoActions .likeBtn").classList.toggle("liked", data.liked);
+            document.getElementById("videoLikeCount").textContent = data.likes;
+            videoDetailData.likedByUser = data.liked;
+            videoDetailData.likes = data.likes;
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function toggleVideoBookmark() {
+    if (!videoDetailData) return;
+    if (!currentUser) { openAuthModal(); return; }
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(videoDetailData.name) + "/bookmark", { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+            document.querySelector("#videoActions .bookmarkBtn").classList.toggle("bookmarked", data.bookmarked);
+            videoDetailData.bookmarkedByUser = data.bookmarked;
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function deleteVideoFromPage() {
+    if (!videoDetailData) return;
+    if (!confirm("この動画を削除しますか？")) return;
+    try {
+        const res = await fetch("/api/video/" + encodeURIComponent(videoDetailData.name), { method: "DELETE" });
+        const data = await res.json();
+        if (data.success) { goBack(); }
+        else { alert(data.error || "エラーが発生しました"); }
+    } catch (e) { console.error(e); alert("通信エラーが発生しました"); }
+}
+
+function editVideoTitle() {
+    if (!videoDetailData) return;
+    const titleEl = document.getElementById("videoTitle");
+    const current = titleEl.textContent;
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "titleInput";
+    input.value = current;
+    input.style.width = "100%";
+    input.style.fontSize = "24px";
+    input.style.fontWeight = "700";
+    titleEl.textContent = "";
+    titleEl.appendChild(input);
+    input.focus();
+    input.select();
+
+    async function save() {
+        const val = input.value.trim() || current;
+        if (val.length > 100) { alert("タイトルは100文字以内で入力してください"); input.focus(); return; }
+        await fetch("/video/" + encodeURIComponent(videoDetailData.name), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: val })
+        });
+        titleEl.textContent = val;
+        videoDetailData.title = val;
+    }
+    input.addEventListener("blur", save);
+    input.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") input.blur();
+        if (e.key === "Escape") titleEl.textContent = current;
+    });
+}
+
+function goBack() {
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = "/";
+    }
+}
+
+function initRouting() {
+    window.addEventListener("popstate", function(e) {
+        const filename = getFilenameFromPath();
+        if (filename) {
+            showVideoByFilename(filename);
+        } else {
+            document.getElementById("videoPage").classList.remove("active");
+            document.getElementById("videos").style.display = "";
+            document.querySelector(".hero").style.display = "";
+            document.getElementById("tabBar").style.display = "";
+            const pag = document.getElementById("pagination");
+            if (pag) pag.style.display = "";
+            if (currentChannel) document.getElementById("channelHeader").style.display = "block";
+
+            if (e.state && e.state.prevState) {
+                const s = e.state.prevState;
+                currentView = s.view || 'all';
+                currentPage = s.page || 1;
+                totalPages = s.totalPages || 1;
+                currentChannel = s.channel || null;
+                currentSearchQuery = s.searchQuery || '';
+                currentPeriod = s.period || null;
+
+                switch (currentView) {
+                    case 'all': loadVideos(); break;
+                    case 'channel': showChannel(currentChannel); break;
+                    case 'search':
+                        document.getElementById("searchInput").value = currentSearchQuery;
+                        searchVideos();
+                        break;
+                    case 'ranking': showRanking(currentPeriod); break;
+                    case 'bookmarks': showBookmarks(); break;
+                }
+                if (s.scrollY) setTimeout(() => window.scrollTo(0, s.scrollY), 50);
+            } else {
+                if (!document.getElementById("videos").children.length) {
+                    showAllVideos();
+                }
+            }
+        }
+    });
+
+    const filename = getFilenameFromPath();
+    if (filename) {
+        showVideoByFilename(filename);
+    }
+}
+
+// Video page comment input events
+document.addEventListener("DOMContentLoaded", function() {
+    const commentInput = document.getElementById("videoCommentInput");
+    const counterEl = document.getElementById("videoCommentCounter");
+    if (commentInput) {
+        commentInput.addEventListener("input", function() {
+            counterEl.textContent = this.value.length + "/500";
+            counterEl.classList.toggle("over", this.value.length >= 500);
+        });
+        commentInput.addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                postVideoPageComment();
+            }
+        });
+    }
+});
+
+checkAuth().then(() => {
+    initRouting();
+    if (!getFilenameFromPath()) {
+        loadVideos();
+    }
+});
 
 </script>
 
