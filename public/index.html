@@ -350,6 +350,19 @@ header{
     background:black;
 }
 
+.durationBadge{
+    position:absolute;
+    bottom:6px;
+    right:6px;
+    background:rgba(0,0,0,0.8);
+    color:#fff;
+    font-size:12px;
+    padding:2px 6px;
+    border-radius:4px;
+    pointer-events:none;
+    z-index:2;
+}
+
 video{
     width:100%;
     height:100%;
@@ -1351,6 +1364,17 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+function formatDuration(seconds) {
+    if (!seconds || seconds <= 0) return "";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (h > 0) {
+        return h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    }
+    return m + ":" + String(s).padStart(2, "0");
+}
+
 function openAuthModal() {
     isLoginMode = true;
     document.getElementById("authModalTitle").textContent = "ログイン";
@@ -1663,6 +1687,8 @@ function renderVideoList(videos, emptyMessage, showRank) {
             ? `<div class="cardDesc">${escapeHtml(video.description)}</div>`
             : "";
 
+        const durHtml = video.duration ? `<span class="durationBadge">${formatDuration(video.duration)}</span>` : "";
+
         div.innerHTML = `
         <div class="videoWrap">
             ${rankHtml}
@@ -1672,6 +1698,7 @@ function renderVideoList(videos, emptyMessage, showRank) {
             data-url="${video.url}"
             ${video.thumbnailUrl ? `poster="${video.thumbnailUrl}"` : ""}>
             </video>
+            ${durHtml}
         </div>
         <div class="cardBody">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
@@ -2299,11 +2326,13 @@ function renderVideoDetail(video) {
         tagsContainer.innerHTML = "";
     }
 
+    const durStr = video.duration ? ' · <span class="duration">' + formatDuration(video.duration) + '</span>' : "";
+
     document.getElementById("videoMeta").innerHTML =
         (video.uploadedBy
             ? '<span class="channelLink" style="cursor:pointer;font-weight:600;color:#b8b8ff">' + escapeHtml(video.uploadedBy) + '</span>'
             : "NextStream") +
-        ' · <span class="viewCount">' + video.views + ' 回視聴</span>';
+        ' · <span class="viewCount">' + video.views + ' 回視聴</span>' + durStr;
     const chLink = document.querySelector("#videoMeta .channelLink");
     if (chLink) {
         chLink.addEventListener("click", function() {

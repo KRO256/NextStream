@@ -6,7 +6,7 @@ const bcrypt = require("bcrypt");
 const session = require("express-session");
 const crypto = require("crypto");
 const helmet = require("helmet");
-const { spawn } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 require("dotenv").config();
 
 const app = express();
@@ -126,7 +126,8 @@ function saveSubscriptions(data) {
 
 function loadViews() {
     try {
-        return JSON.parse(fs.readFileSync(viewsPath, "utf8"));
+        const data = JSON.parse(fs.readFileSync(viewsPath, "utf8"));
+        return (data && typeof data === "object" && !Array.isArray(data)) ? data : {};
     } catch {
         return {};
     }
@@ -459,13 +460,29 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                 if (tagList.length > 10) {
                     return res.status(400).json({ success: false, error: "タグは最大10個までです" });
                 }
+                let duration = 0;
+                try {
+                    const probe = spawnSync("ffprobe", [
+                        "-v", "error",
+                        "-show_entries", "format=duration",
+                        "-of", "default=noprint_wrappers=1:nokey=1",
+                        finalPath
+                    ], { timeout: 10000 });
+                    if (probe.status === 0) {
+                        duration = parseFloat(probe.stdout.toString().trim()) || 0;
+                    }
+                } catch (e) {
+                    console.error("ffprobe failed for", safeName, e.message);
+                }
+
                 metadata[safeName] = {
                     title: title || safeName,
                     description: description || "",
                     tags: tagList,
                     uploadedBy: req.session.userId,
                     likes: [],
-                    views: 0
+                    views: 0,
+                    duration: duration
                 };
                 saveMetadata(metadata);
 
@@ -680,7 +697,8 @@ app.get("/api/bookmarks", requireAuth, (req, res) => {
                     likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
                     bookmarkedByUser: true,
                     views: meta.views || 0,
-                    thumbnailUrl: getVideoThumbnailUrl(file)
+                    thumbnailUrl: getVideoThumbnailUrl(file),
+                    duration: meta.duration || 0
                 };
             });
         videos.reverse();
@@ -977,7 +995,8 @@ app.get("/api/video/:filename", (req, res) => {
                 likedByUser: req.session.userId && video.likes?.includes(req.session.userId) || false,
                 bookmarkedByUser: req.session.userId && userBookmarks.includes(req.params.filename) || false,
                 views: video.views || 0,
-                thumbnailUrl: getVideoThumbnailUrl(req.params.filename)
+                thumbnailUrl: getVideoThumbnailUrl(req.params.filename),
+                duration: video.duration || 0
             }
         });
     } catch (err) {
@@ -1007,7 +1026,8 @@ app.get("/list", (req, res) => {
             likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
             bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
             views: meta.views || 0,
-            thumbnailUrl: getVideoThumbnailUrl(file)
+            thumbnailUrl: getVideoThumbnailUrl(file),
+            duration: meta.duration || 0
         };
     });
 
@@ -1046,7 +1066,8 @@ app.get("/channel/:username", (req, res) => {
             likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
             bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
             views: meta.views || 0,
-            thumbnailUrl: getVideoThumbnailUrl(file)
+            thumbnailUrl: getVideoThumbnailUrl(file),
+            duration: meta.duration || 0
         };
     });
 
@@ -1092,7 +1113,8 @@ app.get("/search", (req, res) => {
             likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
             bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
             views: meta.views || 0,
-            thumbnailUrl: getVideoThumbnailUrl(file)
+            thumbnailUrl: getVideoThumbnailUrl(file),
+            duration: meta.duration || 0
         };
     });
 
@@ -1132,7 +1154,7 @@ app.get("/api/ranking", (req, res) => {
             const meta = metadata[file];
             let periodViews = 0;
 
-            if (views[file]) {
+            if (Array.isArray(views[file])) {
                 if (period === "all") {
                     periodViews = views[file].length;
                 } else {
@@ -1152,7 +1174,8 @@ app.get("/api/ranking", (req, res) => {
                 bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
                 views: periodViews,
                 totalViews: meta?.views || 0,
-                thumbnailUrl: getVideoThumbnailUrl(file)
+                thumbnailUrl: getVideoThumbnailUrl(file),
+                duration: meta?.duration || 0
             };
         });
 
