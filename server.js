@@ -78,8 +78,10 @@ const subscriptionsPath = path.join(__dirname, "subscriptions.json");
 const viewsPath = path.join(__dirname, "views.json");
 const commentsPath = path.join(__dirname, "comments.json");
 const bookmarksPath = path.join(__dirname, "bookmarks.json");
+const progressPath = path.join(__dirname, "progress.json");
+const thumbnailsDir = path.join(uploadDir, "thumbnails");
 
-[uploadDir, hlsDir, tempDir, chunksDir].forEach(dir => {
+[uploadDir, hlsDir, tempDir, chunksDir, thumbnailsDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir);
     }
@@ -157,6 +159,18 @@ function saveBookmarks(data) {
     fs.writeFileSync(bookmarksPath, JSON.stringify(data, null, 2));
 }
 
+function loadProgress() {
+    try {
+        return JSON.parse(fs.readFileSync(progressPath, "utf8"));
+    } catch {
+        return {};
+    }
+}
+
+function saveProgress(data) {
+    fs.writeFileSync(progressPath, JSON.stringify(data, null, 2));
+}
+
 function requireAuth(req, res, next) {
     if (!req.session.userId) {
         return res.status(401).json({ success: false, error: "ログインが必要です" });
@@ -202,6 +216,7 @@ function rateLimit({ windowMs, max, keyFn, message }) {
 
 app.use("/videos", express.static(uploadDir));
 app.use("/hls", express.static(hlsDir));
+app.use("/thumbnails", express.static(thumbnailsDir));
 app.use(express.static("public"));
 
 const storage = multer.diskStorage({
@@ -359,6 +374,11 @@ function getVideoUrl(file, meta) {
     return meta && meta.hls ? "/hls/" + file + "/index.m3u8" : "/videos/" + file;
 }
 
+function getVideoThumbnailUrl(file) {
+    const thumbPath = path.join(thumbnailsDir, file + ".jpg");
+    return fs.existsSync(thumbPath) ? "/thumbnails/" + file + ".jpg" : null;
+}
+
 app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 5,
@@ -374,6 +394,7 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
             totalChunks,
             fileName,
             title,
+            description,
             tags
         } = req.body;
 
@@ -424,6 +445,10 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                     return res.status(400).json({ success: false, error: "タイトルは100文字以内で入力してください" });
                 }
 
+                if (description && description.length > 2000) {
+                    return res.status(400).json({ success: false, error: "説明文は2000文字以内で入力してください" });
+                }
+
                 const tagList = tags
                     ? tags.split(",").map(t => t.trim()).filter(Boolean)
                     : [];
@@ -435,6 +460,7 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                 }
                 metadata[safeName] = {
                     title: title || safeName,
+                    description: description || "",
                     tags: tagList,
                     uploadedBy: req.session.userId,
                     likes: [],
@@ -475,6 +501,22 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                             saveMetadata(meta);
                         }
                         console.log("HLS READY:", safeName);
+
+                        const thumbPath = path.join(thumbnailsDir, safeName + ".jpg");
+                        const ffmpegThumb = spawn("ffmpeg", [
+                            "-i", finalPath,
+                            "-ss", "00:00:01",
+                            "-vframes", "1",
+                            "-q:v", "2",
+                            thumbPath
+                        ]);
+                        ffmpegThumb.on("close", thumbCode => {
+                            if (thumbCode === 0) {
+                                console.log("THUMBNAIL READY:", safeName);
+                            } else {
+                                console.error("thumbnail failed for", safeName, "code:", thumbCode);
+                            }
+                        });
                     } else {
                         console.error("ffmpeg failed for", safeName, "code:", code);
                     }
@@ -501,7 +543,7 @@ app.patch("/video/:filename", requireAuth, csrfProtection, (req, res) => {
 
     try {
 
-        const { title, tags } = req.body;
+        const { title, description, tags } = req.body;
 
         const metadata = loadMetadata();
         const video = metadata[req.params.filename];
@@ -516,6 +558,13 @@ app.patch("/video/:filename", requireAuth, csrfProtection, (req, res) => {
                     return res.status(400).json({ success: false, error: "タイトルは100文字以内で入力してください" });
                 }
                 metadata[req.params.filename].title = title;
+            }
+
+            if (description !== undefined) {
+                if (description.length > 2000) {
+                    return res.status(400).json({ success: false, error: "説明文は2000文字以内で入力してください" });
+                }
+                metadata[req.params.filename].description = description;
             }
 
             if (tags !== undefined) {
@@ -617,17 +666,22 @@ app.get("/api/bookmarks", requireAuth, (req, res) => {
         const metadata = loadMetadata();
         const videos = userBookmarks
             .filter(file => files.includes(file) && metadata[file])
-            .map(file => ({
-                name: file,
-                url: getVideoUrl(file, metadata[file]),
-                title: metadata[file]?.title || file,
-                tags: metadata[file]?.tags || [],
-                uploadedBy: metadata[file]?.uploadedBy || null,
-                likes: metadata[file]?.likes?.length || 0,
-                likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false,
-                bookmarkedByUser: true,
-                views: metadata[file]?.views || 0
-            }));
+            .map(file => {
+                const meta = metadata[file] || {};
+                return {
+                    name: file,
+                    url: getVideoUrl(file, meta),
+                    title: meta.title || file,
+                    description: meta.description || "",
+                    tags: meta.tags || [],
+                    uploadedBy: meta.uploadedBy || null,
+                    likes: meta.likes?.length || 0,
+                    likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
+                    bookmarkedByUser: true,
+                    views: meta.views || 0,
+                    thumbnailUrl: getVideoThumbnailUrl(file)
+                };
+            });
         videos.reverse();
 
         const page = parseInt(req.query.page) || 1;
@@ -638,6 +692,36 @@ app.get("/api/bookmarks", requireAuth, (req, res) => {
         const paged = videos.slice(start, start + limit);
 
         res.json({ videos: paged, total, page, limit, totalPages });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post("/api/video/:filename/progress", requireAuth, csrfProtection, (req, res) => {
+    try {
+        const { time } = req.body;
+        if (typeof time !== "number" || time < 0) {
+            return res.status(400).json({ success: false, error: "再生時間が無効です" });
+        }
+        const progress = loadProgress();
+        const user = req.session.userId;
+        if (!progress[user]) progress[user] = {};
+        progress[user][req.params.filename] = time;
+        saveProgress(progress);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/video/:filename/progress", requireAuth, (req, res) => {
+    try {
+        const progress = loadProgress();
+        const userData = progress[req.session.userId];
+        const time = userData ? userData[req.params.filename] : null;
+        res.json({ success: true, time: time || 0 });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
@@ -885,12 +969,14 @@ app.get("/api/video/:filename", (req, res) => {
                 name: req.params.filename,
                 url: getVideoUrl(req.params.filename, video),
                 title: video.title || req.params.filename,
+                description: video.description || "",
                 tags: video.tags || [],
                 uploadedBy: video.uploadedBy || null,
                 likes: video.likes?.length || 0,
                 likedByUser: req.session.userId && video.likes?.includes(req.session.userId) || false,
                 bookmarkedByUser: req.session.userId && userBookmarks.includes(req.params.filename) || false,
-                views: video.views || 0
+                views: video.views || 0,
+                thumbnailUrl: getVideoThumbnailUrl(req.params.filename)
             }
         });
     } catch (err) {
@@ -907,17 +993,22 @@ app.get("/list", (req, res) => {
     const bookmarks = loadBookmarks();
     const userBookmarks = bookmarks[req.session.userId] || [];
 
-    const videos = files.map(file => ({
-        name: file,
-        url: getVideoUrl(file, metadata[file]),
-        title: metadata[file]?.title || file,
-        tags: metadata[file]?.tags || [],
-        uploadedBy: metadata[file]?.uploadedBy || null,
-        likes: metadata[file]?.likes?.length || 0,
-        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false,
-        bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
-        views: metadata[file]?.views || 0
-    }));
+    const videos = files.map(file => {
+        const meta = metadata[file] || {};
+        return {
+            name: file,
+            url: getVideoUrl(file, meta),
+            title: meta.title || file,
+            description: meta.description || "",
+            tags: meta.tags || [],
+            uploadedBy: meta.uploadedBy || null,
+            likes: meta.likes?.length || 0,
+            likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
+            bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
+            views: meta.views || 0,
+            thumbnailUrl: getVideoThumbnailUrl(file)
+        };
+    });
 
     videos.reverse();
 
@@ -941,17 +1032,22 @@ app.get("/channel/:username", (req, res) => {
     const videos = files.filter(file => {
         const meta = metadata[file];
         return meta && meta.uploadedBy === username;
-    }).map(file => ({
-        name: file,
-        url: getVideoUrl(file, metadata[file]),
-        title: metadata[file]?.title || file,
-        tags: metadata[file]?.tags || [],
-        uploadedBy: metadata[file]?.uploadedBy || null,
-        likes: metadata[file]?.likes?.length || 0,
-        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false,
-        bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
-        views: metadata[file]?.views || 0
-    }));
+    }).map(file => {
+        const meta = metadata[file] || {};
+        return {
+            name: file,
+            url: getVideoUrl(file, meta),
+            title: meta.title || file,
+            description: meta.description || "",
+            tags: meta.tags || [],
+            uploadedBy: meta.uploadedBy || null,
+            likes: meta.likes?.length || 0,
+            likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
+            bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
+            views: meta.views || 0,
+            thumbnailUrl: getVideoThumbnailUrl(file)
+        };
+    });
 
     videos.reverse();
 
@@ -982,17 +1078,22 @@ app.get("/search", (req, res) => {
         const meta = metadata[file];
         if (!meta || !meta.tags) return false;
         return meta.tags.some(tag => tag.toLowerCase().includes(q));
-    }).map(file => ({
-        name: file,
-        url: getVideoUrl(file, metadata[file]),
-        title: metadata[file]?.title || file,
-        tags: metadata[file]?.tags || [],
-        uploadedBy: metadata[file]?.uploadedBy || null,
-        likes: metadata[file]?.likes?.length || 0,
-        likedByUser: req.session.userId && metadata[file]?.likes?.includes(req.session.userId) || false,
-        bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
-        views: metadata[file]?.views || 0
-    }));
+    }).map(file => {
+        const meta = metadata[file] || {};
+        return {
+            name: file,
+            url: getVideoUrl(file, meta),
+            title: meta.title || file,
+            description: meta.description || "",
+            tags: meta.tags || [],
+            uploadedBy: meta.uploadedBy || null,
+            likes: meta.likes?.length || 0,
+            likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
+            bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
+            views: meta.views || 0,
+            thumbnailUrl: getVideoThumbnailUrl(file)
+        };
+    });
 
     results.reverse();
 
@@ -1042,13 +1143,15 @@ app.get("/api/ranking", (req, res) => {
                 name: file,
                 url: getVideoUrl(file, meta),
                 title: meta?.title || file,
+                description: meta?.description || "",
                 tags: meta?.tags || [],
                 uploadedBy: meta?.uploadedBy || null,
                 likes: meta?.likes?.length || 0,
                 likedByUser: req.session.userId && meta?.likes?.includes(req.session.userId) || false,
                 bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
                 views: periodViews,
-                totalViews: meta?.views || 0
+                totalViews: meta?.views || 0,
+                thumbnailUrl: getVideoThumbnailUrl(file)
             };
         });
 
@@ -1109,12 +1212,14 @@ app.get("/api/admin/videos", requireAuth, requireAdmin, (req, res) => {
         const videoList = files.map(file => ({
             name: file,
             title: metadata[file]?.title || file,
+            description: metadata[file]?.description || "",
             tags: metadata[file]?.tags || [],
             uploadedBy: metadata[file]?.uploadedBy || null,
             likes: metadata[file]?.likes?.length || 0,
             views: metadata[file]?.views || 0,
             hls: metadata[file]?.hls || false,
-            commentCount: (comments[file] || []).length
+            commentCount: (comments[file] || []).length,
+            thumbnailUrl: getVideoThumbnailUrl(file)
         }));
 
         videoList.sort((a, b) => b.views - a.views);

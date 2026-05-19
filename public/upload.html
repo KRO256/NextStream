@@ -318,6 +318,12 @@ id="tagsInput"
 class="titleInput"
 placeholder="タグ（カンマ区切り）">
 
+<textarea
+id="descriptionInput"
+class="titleInput"
+style="resize:vertical;min-height:80px"
+placeholder="動画の説明（任意、2000文字以内）"></textarea>
+
 <label class="customFile">
 
 動画を選択
@@ -414,6 +420,14 @@ async function upload() {
         return;
     }
 
+    const descriptionVal = document.getElementById("descriptionInput").value.trim();
+    if (descriptionVal.length > 2000) {
+        alert("説明文は2000文字以内で入力してください");
+        button.disabled = false;
+        button.style.opacity = "1";
+        return;
+    }
+
     const tagRaw = document.getElementById("tagsInput").value.trim();
     const tagList = tagRaw ? tagRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
     if (tagList.some(t => t.length > 20)) {
@@ -471,6 +485,8 @@ async function upload() {
             formData.append("fileName", file.name);
 
             formData.append("title", titleVal);
+
+            formData.append("description", descriptionVal);
 
             formData.append("tags", tagRaw);
 
