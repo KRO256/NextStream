@@ -8,13 +8,15 @@ const dataFiles = [
     "subscriptions.json",
     "views.json",
     "bookmarks.json",
-    "progress.json"
+    "progress.json",
+    "profiles.json"
 ];
 
 const dirsToClean = [
     "uploads",
     path.join("uploads", "hls"),
     path.join("uploads", "thumbnails"),
+    path.join("uploads", "avatars"),
     "temp",
     "chunks"
 ];

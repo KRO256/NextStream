@@ -784,6 +784,11 @@ video{
     color:#b8b8ff;
     font-weight:600;
     font-size:14px;
+    cursor:pointer;
+    transition:0.2s;
+}
+.userName:hover{
+    color:#d0d0ff;
 }
 
 #videoPage{
@@ -1153,10 +1158,19 @@ onclick="clearSearch()">
 
 <div id="channelHeader" style="display:none;padding:0 24px 16px">
     <button class="uploadBtn secondary" onclick="clearChannel()">← すべての動画</button>
-    <div style="display:flex;align-items:center;gap:16px;margin-top:10px;flex-wrap:wrap">
-        <h2 id="channelName" style="margin:0;font-size:24px;font-weight:700"></h2>
-        <button id="subscribeBtn" class="uploadBtn" style="display:none;padding:8px 18px;font-size:14px" onclick="toggleSubscribe()"></button>
-        <span id="subscriberCount" style="color:#8c8ca3;font-size:14px"></span>
+    <div style="display:flex;align-items:flex-start;gap:16px;margin-top:12px;flex-wrap:wrap">
+        <div id="channelAvatar" style="width:64px;height:64px;border-radius:50%;background:rgba(124,77,255,0.2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#b8b8ff">
+            ?
+        </div>
+        <div style="flex:1;min-width:200px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <h2 id="channelName" style="margin:0;font-size:24px;font-weight:700"></h2>
+                <button id="editProfileBtn" class="uploadBtn secondary" style="display:none;padding:6px 14px;font-size:12px" onclick="openEditProfileModal()">✏ プロフィール編集</button>
+                <button id="subscribeBtn" class="uploadBtn" style="display:none;padding:8px 18px;font-size:14px" onclick="toggleSubscribe()"></button>
+                <span id="subscriberCount" style="color:#8c8ca3;font-size:14px"></span>
+            </div>
+            <div id="channelBio" style="margin-top:8px;color:#a0a0b5;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word"></div>
+        </div>
     </div>
 </div>
 
@@ -1257,6 +1271,38 @@ onclick="toggleAuthMode()">
 
 </div>
 
+<div class="modalOverlay" id="editProfileModal">
+
+<div class="modal" style="max-width:500px">
+
+<h2 style="margin:0 0 20px;font-size:22px">プロフィール編集</h2>
+
+<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+    <div id="editProfileAvatarPreview" style="width:72px;height:72px;border-radius:50%;background:rgba(124,77,255,0.2);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:#b8b8ff;flex-shrink:0;background-size:cover;background-position:center">
+        ?
+    </div>
+    <div>
+        <label class="uploadBtn secondary" style="display:inline-block;cursor:pointer;padding:8px 14px;font-size:12px">画像をアップロード
+            <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" onchange="uploadAvatar(this)">
+        </label>
+        <button class="uploadBtn secondary" style="display:inline-block;padding:8px 14px;font-size:12px;margin-left:8px" onclick="removeAvatar()">削除</button>
+        <div style="font-size:11px;color:#6c6c82;margin-top:6px">2MBまで（jpg, png, gif, webp）</div>
+    </div>
+</div>
+
+<label style="font-size:13px;color:#a0a0b5;font-weight:500;display:block;margin-bottom:6px">自己紹介</label>
+<textarea id="editProfileBio" class="titleInput" style="resize:vertical;min-height:80px;width:100%;min-width:0;font-family:Inter,sans-serif" maxlength="500" placeholder="自己紹介を入力..."></textarea>
+<div style="text-align:right;font-size:11px;color:#6c6c82;margin-top:4px"><span id="editProfileBioCounter">0</span>/500</div>
+
+<div style="display:flex;gap:12px;margin-top:20px;justify-content:flex-end">
+    <button class="uploadBtn secondary" onclick="closeEditProfileModal()">キャンセル</button>
+    <button class="uploadBtn" onclick="saveProfile()">保存</button>
+</div>
+
+</div>
+
+</div>
+
 <div class="modalOverlay" id="deleteModal">
 
 <div class="modal">
@@ -1345,7 +1391,7 @@ function renderAuthArea() {
             <a href="/upload.html" class="uploadBtn">＋ アップロード</a>
             <div class="userMenu">
                 ${isAdmin ? `<a href="/admin" class="uploadBtn secondary" style="padding:8px 14px;font-size:12px">⚙ 管理</a>` : ""}
-                <span class="userName">${escapeHtml(currentUser)}</span>
+                <span class="userName" onclick="currentPage=1;showChannel(currentUser)">${escapeHtml(currentUser)}</span>
                 <button class="uploadBtn secondary" onclick="logout()">ログアウト</button>
                 <button class="uploadBtn danger" onclick="openDeleteModal()" style="padding:8px 12px;font-size:12px">削除</button>
             </div>
@@ -1497,6 +1543,7 @@ document.addEventListener("keydown", function(e) {
     if (e.key === "Escape") {
         closeAuthModal();
         closeDeleteModal();
+        closeEditProfileModal();
     }
     if (e.key === "Enter") {
         if (document.getElementById("authModal").classList.contains("active")) {
@@ -1504,6 +1551,115 @@ document.addEventListener("keydown", function(e) {
         }
     }
 });
+
+function openEditProfileModal() {
+    document.getElementById("editProfileModal").classList.add("active");
+    const bioEl = document.getElementById("editProfileBio");
+    const avatarPreview = document.getElementById("editProfileAvatarPreview");
+
+    fetch("/api/profile/" + encodeURIComponent(currentUser)).then(r => r.json()).then(data => {
+        if (data.success && data.profile) {
+            bioEl.value = data.profile.bio || "";
+            if (data.profile.avatar) {
+                avatarPreview.style.backgroundImage = "url(" + data.profile.avatar + ")";
+                avatarPreview.style.backgroundSize = "cover";
+                avatarPreview.style.backgroundPosition = "center";
+                avatarPreview.textContent = "";
+            } else {
+                avatarPreview.style.backgroundImage = "";
+                avatarPreview.textContent = currentUser.charAt(0).toUpperCase();
+            }
+        }
+        updateProfileBioCounter();
+    }).catch(() => {});
+}
+
+function closeEditProfileModal() {
+    document.getElementById("editProfileModal").classList.remove("active");
+}
+
+function updateProfileBioCounter() {
+    const el = document.getElementById("editProfileBio");
+    const counter = document.getElementById("editProfileBioCounter");
+    counter.textContent = el.value.length;
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    const bioInput = document.getElementById("editProfileBio");
+    if (bioInput) {
+        bioInput.addEventListener("input", updateProfileBioCounter);
+    }
+});
+
+async function saveProfile() {
+    const bio = document.getElementById("editProfileBio").value.trim();
+    try {
+        const res = await csrfFetch("/api/profile", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bio })
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeEditProfileModal();
+            if (currentChannel) showChannel(currentChannel);
+        } else {
+            alert(data.error || "保存に失敗しました");
+        }
+    } catch (e) {
+        alert("通信エラーが発生しました");
+    }
+}
+
+async function uploadAvatar(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+        alert("ファイルサイズは2MB以下にしてください");
+        input.value = "";
+        return;
+    }
+    const formData = new FormData();
+    formData.append("avatar", file);
+    try {
+        const res = await csrfFetch("/api/profile/avatar", {
+            method: "POST",
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            const preview = document.getElementById("editProfileAvatarPreview");
+            preview.style.backgroundImage = "url(" + data.avatar + "?" + Date.now() + ")";
+            preview.style.backgroundSize = "cover";
+            preview.style.backgroundPosition = "center";
+            preview.textContent = "";
+        } else {
+            alert(data.error || "アップロードに失敗しました");
+        }
+    } catch (e) {
+        alert("通信エラーが発生しました");
+    }
+    input.value = "";
+}
+
+async function removeAvatar() {
+    if (!confirm("アバター画像を削除しますか？")) return;
+    try {
+        const res = await csrfFetch("/api/profile", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ removeAvatar: true })
+        });
+        const data = await res.json();
+        if (data.success) {
+            const preview = document.getElementById("editProfileAvatarPreview");
+            preview.style.backgroundImage = "";
+            preview.textContent = currentUser.charAt(0).toUpperCase();
+        }
+    } catch (e) {
+        alert("通信エラーが発生しました");
+    }
+}
 
 function startEditTags(el) {
 
@@ -1897,18 +2053,47 @@ async function showChannel(username) {
     document.getElementById("videos").style.display = "";
     document.querySelector(".hero").style.display = "";
 
-    const [videosRes, subsRes] = await Promise.all([
+    const [videosRes, subsRes, profileRes] = await Promise.all([
         fetch(`/channel/${encodeURIComponent(username)}?page=${currentPage}&limit=30`),
-        fetch("/api/channel/" + encodeURIComponent(username) + "/subscribers")
+        fetch("/api/channel/" + encodeURIComponent(username) + "/subscribers"),
+        fetch("/api/profile/" + encodeURIComponent(username))
     ]);
     const data = await videosRes.json();
     const subsData = await subsRes.json();
+    const profileData = await profileRes.json();
 
     currentPage = data.page;
     totalPages = data.totalPages;
 
     renderVideoList(data.videos, "このチャンネルにはまだ動画がありません");
     updateSubscribeButton(username, subsData);
+    renderProfile(username, profileData);
+}
+
+function renderProfile(username, profileData) {
+    const avatarEl = document.getElementById("channelAvatar");
+    const bioEl = document.getElementById("channelBio");
+    const editBtn = document.getElementById("editProfileBtn");
+
+    if (profileData.success && profileData.profile) {
+        const p = profileData.profile;
+        if (p.avatar) {
+            avatarEl.style.backgroundImage = "url(" + p.avatar + ")";
+            avatarEl.style.backgroundSize = "cover";
+            avatarEl.style.backgroundPosition = "center";
+            avatarEl.textContent = "";
+        } else {
+            avatarEl.style.backgroundImage = "";
+            avatarEl.textContent = username.charAt(0).toUpperCase();
+        }
+        bioEl.textContent = p.bio || "";
+    } else {
+        avatarEl.style.backgroundImage = "";
+        avatarEl.textContent = username.charAt(0).toUpperCase();
+        bioEl.textContent = "";
+    }
+
+    editBtn.style.display = currentUser === username ? "" : "none";
 }
 
 function updateSubscribeButton(channel, subsData) {

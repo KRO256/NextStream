@@ -81,8 +81,10 @@ const commentsPath = path.join(__dirname, "comments.json");
 const bookmarksPath = path.join(__dirname, "bookmarks.json");
 const progressPath = path.join(__dirname, "progress.json");
 const thumbnailsDir = path.join(uploadDir, "thumbnails");
+const profilesPath = path.join(__dirname, "profiles.json");
+const avatarsDir = path.join(uploadDir, "avatars");
 
-[uploadDir, hlsDir, tempDir, chunksDir, thumbnailsDir].forEach(dir => {
+[uploadDir, hlsDir, tempDir, chunksDir, thumbnailsDir, avatarsDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir);
     }
@@ -173,6 +175,18 @@ function saveProgress(data) {
     fs.writeFileSync(progressPath, JSON.stringify(data, null, 2));
 }
 
+function loadProfiles() {
+    try {
+        return JSON.parse(fs.readFileSync(profilesPath, "utf8"));
+    } catch {
+        return {};
+    }
+}
+
+function saveProfiles(data) {
+    fs.writeFileSync(profilesPath, JSON.stringify(data, null, 2));
+}
+
 function requireAuth(req, res, next) {
     if (!req.session.userId) {
         return res.status(401).json({ success: false, error: "ログインが必要です" });
@@ -219,6 +233,7 @@ function rateLimit({ windowMs, max, keyFn, message }) {
 app.use("/videos", express.static(uploadDir));
 app.use("/hls", express.static(hlsDir));
 app.use("/thumbnails", express.static(thumbnailsDir));
+app.use("/avatars", express.static(avatarsDir));
 app.use(express.static("public"));
 
 const storage = multer.diskStorage({
@@ -356,6 +371,16 @@ app.delete("/api/account", requireAuth, csrfProtection, async (req, res) => {
 
         delete users[req.session.userId];
         saveUsers(users);
+
+        const profiles = loadProfiles();
+        if (profiles[req.session.userId]) {
+            if (profiles[req.session.userId].avatar) {
+                const avatarFile = path.join(avatarsDir, path.basename(profiles[req.session.userId].avatar));
+                if (fs.existsSync(avatarFile)) fs.unlinkSync(avatarFile);
+            }
+            delete profiles[req.session.userId];
+            saveProfiles(profiles);
+        }
 
         req.session.destroy();
         res.json({ success: true });
@@ -801,6 +826,105 @@ app.get("/api/channel/:username/subscribers", (req, res) => {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
     }
+});
+
+app.get("/api/profile/:username", (req, res) => {
+    try {
+        const profiles = loadProfiles();
+        const profile = profiles[req.params.username] || {};
+        res.json({
+            success: true,
+            profile: {
+                bio: profile.bio || "",
+                avatar: profile.avatar || null
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.put("/api/profile", requireAuth, csrfProtection, (req, res) => {
+    try {
+        const { bio, removeAvatar } = req.body;
+        if (bio !== undefined && bio.length > 500) {
+            return res.status(400).json({ success: false, error: "プロフィール文は500文字以内で入力してください" });
+        }
+        const profiles = loadProfiles();
+        if (!profiles[req.session.userId]) {
+            profiles[req.session.userId] = {};
+        }
+        if (bio !== undefined) {
+            profiles[req.session.userId].bio = bio;
+        }
+        if (removeAvatar) {
+            if (profiles[req.session.userId].avatar) {
+                const avatarFile = path.join(avatarsDir, path.basename(profiles[req.session.userId].avatar));
+                if (fs.existsSync(avatarFile)) fs.unlinkSync(avatarFile);
+            }
+            profiles[req.session.userId].avatar = null;
+        }
+        saveProfiles(profiles);
+        res.json({ success: true, profile: { bio: profiles[req.session.userId].bio || "", avatar: profiles[req.session.userId].avatar || null } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+const avatarUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, avatarsDir),
+        filename: (req, file, cb) => {
+            const ext = path.extname(file.originalname) || ".jpg";
+            cb(null, req.session.userId + ext);
+        }
+    }),
+    limits: { fileSize: 2 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowed = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (allowed.includes(ext)) {
+            cb(null, true);
+        } else {
+            cb(new Error("対応形式: jpg, png, gif, webp"));
+        }
+    }
+});
+
+app.post("/api/profile/avatar", requireAuth, csrfProtection, (req, res) => {
+    avatarUpload.single("avatar")(req, res, err => {
+        if (err) {
+            if (err instanceof multer.MulterError) {
+                if (err.code === "LIMIT_FILE_SIZE") {
+                    return res.status(400).json({ success: false, error: "ファイルサイズは2MB以下にしてください" });
+                }
+                return res.status(400).json({ success: false, error: err.message });
+            }
+            return res.status(400).json({ success: false, error: err.message });
+        }
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: "画像ファイルを選択してください" });
+        }
+        try {
+            const profiles = loadProfiles();
+            if (!profiles[req.session.userId]) {
+                profiles[req.session.userId] = {};
+            }
+            if (profiles[req.session.userId].avatar) {
+                const oldAvatar = path.join(avatarsDir, path.basename(profiles[req.session.userId].avatar));
+                if (fs.existsSync(oldAvatar)) fs.unlinkSync(oldAvatar);
+            }
+            const avatarUrl = "/avatars/" + req.file.filename;
+            profiles[req.session.userId].avatar = avatarUrl;
+            saveProfiles(profiles);
+            res.json({ success: true, avatar: avatarUrl });
+        } catch (e) {
+            console.error(e);
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
 });
 
 app.post("/api/video/:filename/comment", requireAuth, csrfProtection, rateLimit({
@@ -1335,6 +1459,16 @@ app.delete("/api/admin/user/:username", requireAuth, requireAdmin, csrfProtectio
             subscriptions[channel] = subscriptions[channel].filter(s => s !== targetUser);
         }
         saveSubscriptions(subscriptions);
+
+        const profiles = loadProfiles();
+        if (profiles[targetUser]) {
+            if (profiles[targetUser].avatar) {
+                const avatarFile = path.join(avatarsDir, path.basename(profiles[targetUser].avatar));
+                if (fs.existsSync(avatarFile)) fs.unlinkSync(avatarFile);
+            }
+            delete profiles[targetUser];
+            saveProfiles(profiles);
+        }
 
         delete users[targetUser];
         saveUsers(users);
