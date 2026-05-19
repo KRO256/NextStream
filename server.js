@@ -120,6 +120,35 @@ function requireAuth(req, res, next) {
     next();
 }
 
+const rateLimitStore = new Map();
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitStore) {
+        if (now > entry.resetAt) {
+            rateLimitStore.delete(key);
+        }
+    }
+}, 60000);
+
+function rateLimit({ windowMs, max, keyFn, message }) {
+    return (req, res, next) => {
+        const key = keyFn(req);
+        const now = Date.now();
+        let entry = rateLimitStore.get(key);
+        if (!entry || now > entry.resetAt) {
+            entry = { count: 0, resetAt: now + windowMs };
+            rateLimitStore.set(key, entry);
+        }
+        entry.count++;
+        if (entry.count > max) {
+            const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+            res.set("Retry-After", String(retryAfter));
+            return res.status(429).json({ success: false, error: message });
+        }
+        next();
+    };
+}
+
 app.use("/videos", express.static(uploadDir));
 app.use(express.static("public"));
 
@@ -141,7 +170,12 @@ const upload = multer({
     }
 });
 
-app.post("/api/register", async (req, res) => {
+app.post("/api/register", rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 3,
+    keyFn: req => req.ip,
+    message: "登録は1時間に3回までです"
+}), async (req, res) => {
     try {
         const { username, password } = req.body;
 
@@ -179,7 +213,12 @@ app.post("/api/register", async (req, res) => {
     }
 });
 
-app.post("/api/login", async (req, res) => {
+app.post("/api/login", rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    keyFn: req => req.ip,
+    message: "ログイン試行回数が多すぎます。しばらくしてから再試行してください"
+}), async (req, res) => {
     try {
         const { username, password } = req.body;
 
@@ -250,7 +289,12 @@ app.delete("/api/account", requireAuth, async (req, res) => {
     }
 });
 
-app.post("/upload-chunk", requireAuth, upload.single("chunk"), (req, res) => {
+app.post("/upload-chunk", requireAuth, rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    keyFn: req => "upload:" + req.session.userId,
+    message: "アップロードは1時間に5回までです"
+}), upload.single("chunk"), (req, res) => {
 
     try {
 
@@ -347,15 +391,19 @@ app.post("/upload-chunk", requireAuth, upload.single("chunk"), (req, res) => {
     }
 });
 
-app.patch("/video/:filename", (req, res) => {
+app.patch("/video/:filename", requireAuth, (req, res) => {
 
     try {
 
         const { title, tags } = req.body;
 
         const metadata = loadMetadata();
+        const video = metadata[req.params.filename];
 
-        if (metadata[req.params.filename]) {
+        if (video) {
+            if (video.uploadedBy !== req.session.userId) {
+                return res.status(403).json({ success: false, error: "自分の動画のみ編集できます" });
+            }
 
             if (title !== undefined) {
                 if (title.length > 100) {
@@ -538,7 +586,12 @@ app.get("/api/channel/:username/subscribers", (req, res) => {
     }
 });
 
-app.post("/api/video/:filename/comment", requireAuth, (req, res) => {
+app.post("/api/video/:filename/comment", requireAuth, rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    keyFn: req => "comment:" + req.session.userId,
+    message: "コメントの投稿は15分間に20回までです"
+}), (req, res) => {
     try {
         const { text } = req.body;
         if (!text || !text.trim()) {
