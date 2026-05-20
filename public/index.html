@@ -1082,6 +1082,201 @@ video{
     color:#e53935;
 }
 
+.playlistCard{
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:24px;
+    overflow:hidden;
+    transition:0.25s;
+    cursor:pointer;
+    backdrop-filter:blur(10px);
+}
+.playlistCard:hover{
+    transform:translateY(-6px);
+    border-color:rgba(124,77,255,0.5);
+    box-shadow:0 20px 40px rgba(0,0,0,0.35);
+}
+.playlistCard .thumbWrap{
+    position:relative;
+    aspect-ratio:16/9;
+    background:rgba(124,77,255,0.12);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+}
+.playlistCard .thumbWrap img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+.playlistCard .thumbPlaceholder{
+    font-size:48px;
+    opacity:0.4;
+}
+.playlistCard .thumbOverlay{
+    position:absolute;
+    bottom:0;right:0;left:0;
+    background:linear-gradient(transparent,rgba(0,0,0,0.7));
+    padding:10px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    color:white;
+    font-size:13px;
+    font-weight:500;
+}
+.playlistCard .cardBody{
+    padding:16px 18px;
+}
+.playlistCard .playlistTitle{
+    font-size:16px;
+    font-weight:600;
+    line-height:1.3;
+    word-break:break-word;
+}
+.playlistCard .playlistDesc{
+    color:#8c8ca3;
+    font-size:13px;
+    margin-top:6px;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    word-break:break-word;
+}
+.playlistCard .playlistMeta{
+    color:#6c6c82;
+    font-size:12px;
+    margin-top:8px;
+}
+.playlistCard .playlistActions{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+    flex-wrap:wrap;
+}
+.playlistCard .playlistActions button{
+    font-family:"Inter",sans-serif;
+    font-size:12px;
+    padding:6px 12px;
+    border-radius:8px;
+    border:none;
+    cursor:pointer;
+    transition:0.2s;
+    font-weight:500;
+}
+.playlistCard .playlistActions .editBtn{
+    background:rgba(124,77,255,0.15);
+    color:#b8b8ff;
+}
+.playlistCard .playlistActions .editBtn:hover{
+    background:rgba(124,77,255,0.3);
+}
+.playlistCard .playlistActions .deleteBtn{
+    background:rgba(229,57,53,0.15);
+    color:#ef5350;
+}
+.playlistCard .playlistActions .deleteBtn:hover{
+    background:rgba(229,57,53,0.3);
+}
+.playlistCard .privacyBadge{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    font-size:11px;
+    padding:3px 8px;
+    border-radius:999px;
+    font-weight:500;
+}
+.playlistCard .privacyBadge.public{
+    background:rgba(76,175,80,0.15);
+    color:#66bb6a;
+}
+.playlistCard .privacyBadge.private{
+    background:rgba(255,152,0,0.15);
+    color:#ffa726;
+}
+#addToPlaylistDropdown{
+    position:fixed;
+    background:#1a1a22;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:16px;
+    overflow:hidden;
+    z-index:300;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    min-width:240px;
+    max-height:320px;
+    overflow-y:auto;
+}
+#addToPlaylistDropdown .dropdownHeader{
+    padding:12px 16px;
+    font-weight:600;
+    font-size:14px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+    color:#d0d0e0;
+}
+#addToPlaylistDropdown .playlistOption{
+    padding:10px 16px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:13px;
+    transition:0.15s;
+    border-bottom:1px solid rgba(255,255,255,0.03);
+}
+#addToPlaylistDropdown .playlistOption:hover{
+    background:rgba(124,77,255,0.12);
+}
+#addToPlaylistDropdown .playlistOption .plTitle{
+    flex:1;
+    color:#d0d0e0;
+}
+#addToPlaylistDropdown .playlistOption .plCheck{
+    color:#7c4dff;
+    font-size:16px;
+}
+#addToPlaylistDropdown .dropdownFooter{
+    padding:10px 16px;
+    border-top:1px solid rgba(255,255,255,0.06);
+}
+#addToPlaylistDropdown .dropdownFooter button{
+    background:none;
+    border:none;
+    color:#7c4dff;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:500;
+    padding:4px 0;
+    font-family:"Inter",sans-serif;
+}
+#addToPlaylistDropdown .dropdownFooter button:hover{
+    text-decoration:underline;
+}
+.addToPlaylistBtn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:none;
+    border:none;
+    color:#8c8ca3;
+    cursor:pointer;
+    padding:4px 0;
+    margin-left:8px;
+    vertical-align:middle;
+    font-size:13px;
+    font-family:"Inter",sans-serif;
+    transition:0.2s;
+}
+.addToPlaylistBtn:hover{
+    color:#7c4dff;
+}
+.addToPlaylistBtn svg{
+    width:18px;
+    height:18px;
+}
+
 @media(max-width:850px){
 
     .heroTitle{
@@ -1144,12 +1339,22 @@ style="display:none;position:relative;padding:8px 14px">
 </button>
 
 <button
-id="bookmarkBtn"
-class="uploadBtn secondary"
-onclick="currentPage=1;showBookmarks()"
-style="display:none">
+  id="bookmarkBtn"
+  class="uploadBtn secondary"
+  onclick="currentPage=1;showBookmarks()"
+  style="display:none">
 
-☆ ブックマーク
+  ☆ ブックマーク
+
+</button>
+
+<button
+  id="playlistBtn"
+  class="uploadBtn secondary"
+  onclick="showPlaylistList()"
+  style="display:none">
+
+  📋 プレイリスト
 
 </button>
 
@@ -1195,6 +1400,8 @@ onclick="clearSearch()">
     </div>
 </div>
 
+<div id="addToPlaylistDropdown" style="display:none"></div>
+
 <section class="hero">
 
 <div class="heroTitle">
@@ -1229,6 +1436,25 @@ onclick="clearSearch()">
             <div id="channelBio" style="margin-top:8px;color:#a0a0b5;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word"></div>
         </div>
     </div>
+</div>
+
+<div id="playlistHeader" style="display:none;padding:0 24px 16px">
+    <button class="uploadBtn secondary" onclick="backFromPlaylistDetail()">← プレイリスト一覧</button>
+    <div style="display:flex;align-items:flex-start;gap:16px;margin-top:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <h2 id="playlistDetailTitle" style="margin:0;font-size:24px;font-weight:700"></h2>
+                <span id="playlistDetailBadge" class="privacyBadge" style="font-size:12px"></span>
+                <button id="editPlaylistBtn" class="uploadBtn secondary" style="display:none;padding:6px 14px;font-size:12px" onclick="openEditPlaylistFromDetail()">✏ 編集</button>
+            </div>
+            <div id="playlistDetailDesc" style="margin-top:6px;color:#a0a0b5;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word"></div>
+            <div id="playlistDetailMeta" style="margin-top:6px;color:#6c6c82;font-size:13px"></div>
+        </div>
+    </div>
+</div>
+
+<div id="emptyPlaylist" style="display:none;padding:80px 20px;text-align:center;color:#88889c;font-size:18px">
+    このプレイリストには動画がありません
 </div>
 
 <div class="tabBar" id="tabBar">
@@ -1360,6 +1586,23 @@ onclick="toggleAuthMode()">
 
 </div>
 
+<div class="modalOverlay" id="playlistModal">
+<div class="modal" style="max-width:450px">
+<h2 id="playlistModalTitle" style="margin:0 0 20px;font-size:22px">新しいプレイリスト</h2>
+<input type="text" id="playlistNameInput" class="titleInput" placeholder="プレイリスト名" style="width:100%;min-width:0;margin-bottom:12px" maxlength="100">
+<textarea id="playlistDescInput" class="titleInput" style="resize:vertical;min-height:60px;width:100%;min-width:0;font-family:Inter,sans-serif;margin-bottom:12px" maxlength="500" placeholder="説明（任意）"></textarea>
+<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:#a0a0b5;margin-bottom:4px">
+    <input type="checkbox" id="playlistPublicCheck" checked>
+    公開プレイリスト（他のユーザーも閲覧できます）
+</label>
+<div id="playlistModalError" style="color:#e53935;font-size:13px;margin-top:8px;display:none"></div>
+<div style="display:flex;gap:12px;margin-top:20px;justify-content:flex-end">
+    <button class="uploadBtn secondary" onclick="closePlaylistModal()">キャンセル</button>
+    <button class="uploadBtn" id="playlistModalSubmitBtn" onclick="submitPlaylistModal()">作成</button>
+</div>
+</div>
+</div>
+
 <div class="modalOverlay" id="deleteModal">
 
 <div class="modal">
@@ -1443,9 +1686,11 @@ function renderAuthArea() {
     const area = document.getElementById("authArea");
     const bookmarkBtn = document.getElementById("bookmarkBtn");
     const notifBtn = document.getElementById("notificationBtn");
+    const playlistBtn = document.getElementById("playlistBtn");
     if (currentUser) {
         bookmarkBtn.style.display = "";
         notifBtn.style.display = "";
+        playlistBtn.style.display = "";
         area.innerHTML = `
             <a href="/upload.html" class="uploadBtn">＋ アップロード</a>
             <div class="userMenu">
@@ -1459,6 +1704,7 @@ function renderAuthArea() {
     } else {
         bookmarkBtn.style.display = "none";
         notifBtn.style.display = "none";
+        playlistBtn.style.display = "none";
         area.innerHTML = `
             <button class="uploadBtn" onclick="openAuthModal()">ログイン</button>
         `;
@@ -1939,6 +2185,9 @@ function renderVideoList(videos, emptyMessage, showRank) {
                 <button class="bookmarkBtn${video.bookmarkedByUser ? ' bookmarked' : ''}" data-filename="${video.name}" onclick="toggleBookmark(this)">
                     <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
                 </button>
+                <button class="addToPlaylistBtn" data-filename="${video.name}" onclick="event.stopPropagation();openAddToPlaylistDropdown(this,'${video.name}')" title="プレイリストに追加">
+                    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </button>
             </div>
             <details class="commentsSection" data-filename="${video.name}">
                 <summary>コメントを見る</summary>
@@ -2092,6 +2341,12 @@ async function goToPage(page) {
         case 'bookmarks':
             await showBookmarks();
             break;
+        case 'playlist-list':
+            await showPlaylistList();
+            break;
+        case 'playlist-detail':
+            await showPlaylistDetail(currentPlaylistId);
+            break;
     }
 }
 
@@ -2131,6 +2386,7 @@ async function showChannel(username) {
     renderVideoList(data.videos, "このチャンネルにはまだ動画がありません");
     updateSubscribeButton(username, subsData);
     renderProfile(username, profileData);
+    showChannelPlaylists(username);
 }
 
 function renderProfile(username, profileData) {
@@ -2607,6 +2863,7 @@ function navigateToVideo(filename) {
         channel: currentChannel,
         searchQuery: currentSearchQuery,
         period: currentPeriod,
+        playlistId: currentPlaylistId,
         scrollY: window.scrollY
     };
     history.pushState({ view: "video", prevState, filename }, "", "/watch/" + encodeURIComponent(filename));
@@ -2708,15 +2965,17 @@ function renderVideoDetail(video) {
     const likeIcon = '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
     const bookmarkIcon = '<svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>';
 
+    const plusIcon = '<svg viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
     let actionsHtml =
         '<button class="likeBtn' + (video.likedByUser ? ' liked' : '') + '" onclick="toggleVideoLike()">' +
             likeIcon + ' <span id="videoLikeCount">' + video.likes + '</span></button>' +
         '<button class="bookmarkBtn' + (video.bookmarkedByUser ? ' bookmarked' : '') + '" onclick="toggleVideoBookmark()">' +
             bookmarkIcon + '</button>' +
-        '<button onclick="shareVideoFromPage()" title="共有">🔗 共有</button>';
+        '<button onclick="shareVideoFromPage()" title="共有">🔗 共有</button>' +
+        '<button onclick="openAddToPlaylistDropdown(this,\'' + video.name + '\')" title="プレイリストに追加">' + plusIcon + ' 追加</button>';
     if (currentUser === video.uploadedBy) {
         actionsHtml += '<button onclick="editVideoTitle()" title="タイトルを編集">✏️ 編集</button>';
-        actionsHtml += '<button class="deleteVideoBtn" onclick="deleteVideoFromPage()" style="background:rgba(229,57,53,0.15);border:1px solid rgba(229,57,53,0.3);color:#ef5350">🗑 削除</button>';
+        actionsHtml += '<button class="deleteVideoBtn" onclick="deleteVideoFromPage()" style="background:rgba(229,57,53,0.15);border:1px solid rgba(255,255,255,0.08);color:#ef5350">🗑 削除</button>';
     }
     document.getElementById("videoActions").innerHTML = actionsHtml;
 
@@ -2945,6 +3204,527 @@ function stopProgressSaving() {
     }
 }
 
+// --- Playlist state ---
+let currentPlaylistId = null;
+let playlistModalMode = 'create';
+let editingPlaylistId = null;
+
+function showPlaylistList() {
+    stopProgressSaving();
+    const wasVideoPage = document.getElementById("videoPage").classList.contains("active");
+    document.getElementById("videoPage").classList.remove("active");
+    currentView = 'playlist-list';
+    currentPlaylistId = null;
+    if (wasVideoPage) {
+        history.pushState({ view: "playlist-list" }, "", "/");
+    }
+
+    document.getElementById("searchBtn").style.display = "";
+    document.getElementById("clearSearchBtn").style.display = "none";
+    document.getElementById("searchInput").value = "";
+    document.getElementById("channelHeader").style.display = "none";
+    currentChannel = null;
+    currentPeriod = null;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelector(".hero").style.display = "none";
+    document.getElementById("tabBar").style.display = "";
+    document.getElementById("videos").style.display = "";
+    document.getElementById("playlistHeader").style.display = "none";
+    document.getElementById("emptyPlaylist").style.display = "none";
+    const pag = document.getElementById("pagination");
+    if (pag) pag.style.display = "none";
+
+    fetch("/api/playlists").then(r => r.json()).then(data => {
+        if (data.success) {
+            renderPlaylistList(data.playlists);
+        }
+    }).catch(e => {
+        console.error(e);
+        document.getElementById("videos").innerHTML = '<div class="empty">読み込みエラー</div>';
+    });
+}
+
+function renderPlaylistList(playlists) {
+    const container = document.getElementById("videos");
+    container.innerHTML = "";
+
+    if (playlists.length === 0) {
+        container.innerHTML = '<div class="empty">プレイリストがまだありません</div>' +
+            '<div style="text-align:center;padding-bottom:40px">' +
+            '<button class="uploadBtn" onclick="openCreatePlaylistModal()">＋ 新しいプレイリスト</button>' +
+            '</div>';
+        return;
+    }
+
+    let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">' +
+        '<h2 style="margin:0;font-size:22px;font-weight:700">マイプレイリスト</h2>' +
+        '<button class="uploadBtn" onclick="openCreatePlaylistModal()">＋ 新規作成</button>' +
+        '</div>';
+
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px">';
+
+    playlists.forEach(pl => {
+        const isPrivate = !pl.isPublic;
+        const privacyClass = isPrivate ? 'private' : 'public';
+        const privacyLabel = isPrivate ? '🔒 非公開' : '🌐 公開';
+        const videoCount = pl.videoFilenames ? pl.videoFilenames.length : 0;
+
+        html += '<div class="playlistCard" onclick="showPlaylistDetail(\'' + pl.id + '\')">' +
+            '<div class="thumbWrap">' +
+            '<div class="thumbPlaceholder">📋</div>' +
+            '<div class="thumbOverlay">' +
+            '<span>' + videoCount + ' 件の動画</span>' +
+            '<span class="privacyBadge ' + privacyClass + '">' + privacyLabel + '</span>' +
+            '</div></div>' +
+            '<div class="cardBody">' +
+            '<div class="playlistTitle">' + escapeHtml(pl.title) + '</div>' +
+            (pl.description ? '<div class="playlistDesc">' + escapeHtml(pl.description) + '</div>' : '') +
+            '<div class="playlistMeta">作成: ' + formatNotifTime(pl.createdAt) + '</div>' +
+            '<div class="playlistActions" onclick="event.stopPropagation()">' +
+            '<button class="editBtn" onclick="openEditPlaylistModal(\'' + pl.id + '\')">✏ 編集</button>' +
+            '<button class="deleteBtn" onclick="deletePlaylist(\'' + pl.id + '\')">🗑 削除</button>' +
+            '</div></div></div>';
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+async function showPlaylistDetail(id) {
+    stopProgressSaving();
+    const wasVideoPage = document.getElementById("videoPage").classList.contains("active");
+    document.getElementById("videoPage").classList.remove("active");
+    currentView = 'playlist-detail';
+    currentPlaylistId = id;
+    if (wasVideoPage) {
+        history.pushState({ view: "playlist-detail", playlistId: id }, "", "/");
+    }
+
+    document.getElementById("searchBtn").style.display = "";
+    document.getElementById("clearSearchBtn").style.display = "none";
+    document.getElementById("searchInput").value = "";
+    document.getElementById("channelHeader").style.display = "none";
+    currentChannel = null;
+    currentPeriod = null;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelector(".hero").style.display = "none";
+    document.getElementById("tabBar").style.display = "none";
+    document.getElementById("videos").style.display = "";
+    document.getElementById("emptyPlaylist").style.display = "none";
+    const pag = document.getElementById("pagination");
+    if (pag) pag.style.display = "none";
+
+    document.getElementById("videos").innerHTML = '<div class="empty">読み込み中...</div>';
+
+    try {
+        const res = await fetch("/api/playlists/" + encodeURIComponent(id));
+        const data = await res.json();
+        if (data.success) {
+            const pl = data.playlist;
+            const videos = data.videos;
+
+            const header = document.getElementById("playlistHeader");
+            document.getElementById("playlistDetailTitle").textContent = pl.title;
+            document.getElementById("playlistDetailDesc").textContent = pl.description || "";
+            document.getElementById("playlistDetailDesc").style.display = pl.description ? "" : "none";
+            const badge = document.getElementById("playlistDetailBadge");
+            if (pl.isPublic) {
+                badge.textContent = "🌐 公開";
+                badge.className = "privacyBadge public";
+            } else {
+                badge.textContent = "🔒 非公開";
+                badge.className = "privacyBadge private";
+            }
+            document.getElementById("playlistDetailMeta").textContent = pl.videoCount + " 件の動画 · " + formatNotifTime(pl.createdAt);
+            const editBtn = document.getElementById("editPlaylistBtn");
+            editBtn.style.display = (currentUser === pl.username) ? "" : "none";
+            editBtn.dataset.playlistId = pl.id;
+            header.style.display = "block";
+
+            if (videos.length === 0) {
+                document.getElementById("videos").innerHTML = '';
+                document.getElementById("emptyPlaylist").style.display = "block";
+            } else {
+                document.getElementById("emptyPlaylist").style.display = "none";
+                renderVideoListForPlaylist(videos, id);
+            }
+        } else {
+            document.getElementById("videos").innerHTML = '<div class="empty">' + (data.error || "プレイリストが見つかりません") + '</div>';
+        }
+    } catch (e) {
+        console.error(e);
+        document.getElementById("videos").innerHTML = '<div class="empty">読み込みエラー</div>';
+    }
+}
+
+function renderVideoListForPlaylist(videos, playlistId) {
+    const container = document.getElementById("videos");
+    container.innerHTML = "";
+
+    videos.forEach((video, index) => {
+        const div = document.createElement("div");
+        div.className = "card";
+
+        const tagsHtml = (video.tags || []).length
+            ? '<div class="videoTags" data-filename="' + video.name + '">' +
+              video.tags.map(t => '<span class="tag" data-tag="' + t + '">' + t + '</span>').join("") + '</div>'
+            : '<div class="videoTags" data-filename="' + video.name + '"><span class="tag addTag">+ タグ追加</span></div>';
+
+        const durHtml = video.duration ? '<span class="durationBadge">' + formatDuration(video.duration) + '</span>' : "";
+
+        div.innerHTML =
+            '<div class="videoWrap">' +
+            '<video controls preload="metadata" data-url="' + video.url + '"' +
+            (video.thumbnailUrl ? ' poster="' + video.thumbnailUrl + '"' : '') + '>' +
+            '</video>' + durHtml + '</div>' +
+            '<div class="cardBody">' +
+            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">' +
+            '<div class="videoName" data-filename="' + video.name + '" style="flex:1">' + video.title + '</div>' +
+            '<button class="shareBtn" data-filename="' + video.name + '" onclick="shareVideo(this)" title="共有">🔗</button>' +
+            (currentUser === video.uploadedBy ? '<button class="deleteVideoBtn" data-filename="' + video.name + '" onclick="deleteVideo(this)">🗑 削除</button>' : "") +
+            '</div>' +
+            (video.description ? '<div class="cardDesc">' + escapeHtml(video.description) + '</div>' : "") +
+            tagsHtml +
+            '<div class="videoMeta">' +
+            (video.uploadedBy ? '<span class="channelLink">' + escapeHtml(video.uploadedBy) + '</span>' : "NextStream") + ' · ' +
+            '<span class="viewCount">' + (video.views || 0) + ' 回視聴</span> · ' +
+            '<button class="likeBtn' + (video.likedByUser ? ' liked' : '') + '" data-filename="' + video.name + '" onclick="toggleLike(this)">' +
+            '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>' +
+            '<span class="likeCount">' + (video.likes || 0) + '</span></button>' +
+            '<button class="bookmarkBtn' + (video.bookmarkedByUser ? ' bookmarked' : '') + '" data-filename="' + video.name + '" onclick="toggleBookmark(this)">' +
+            '<svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></button>' +
+            '<button class="addToPlaylistBtn" data-filename="' + video.name + '" onclick="event.stopPropagation();openAddToPlaylistDropdown(this,\'' + video.name + '\')" title="プレイリストに追加">' +
+            '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>' +
+            (currentUser ? '<button class="deleteVideoBtn" style="background:rgba(229,57,53,0.15);color:#ef5350;border:1px solid rgba(229,57,53,0.3)" data-playlist="' + playlistId + '" data-filename="' + video.name + '" onclick="removeFromPlaylist(this)">プレイリストから削除</button>' : "") +
+            '</div></div>';
+
+        const titleEl = div.querySelector(".videoName");
+        titleEl.addEventListener("click", function(e) {
+            e.stopPropagation();
+            navigateToVideo(video.name);
+        });
+
+        const tagsEl = div.querySelector(".videoTags");
+        tagsEl.addEventListener("click", function(e) {
+            if (e.target.classList.contains("tag") && !e.target.classList.contains("addTag")) return;
+            startEditTags(this);
+        });
+
+        const channelEl = div.querySelector(".channelLink");
+        if (channelEl) {
+            channelEl.addEventListener("click", function(e) {
+                e.stopPropagation();
+                currentPage = 1;
+                showChannel(video.uploadedBy);
+            });
+        }
+
+        const videoEl = div.querySelector("video");
+        const videoUrl = videoEl.dataset.url;
+        if (videoUrl.endsWith(".m3u8")) {
+            if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
+                videoEl.src = videoUrl;
+            } else if (window.Hls && Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(videoUrl);
+                hls.attachMedia(videoEl);
+            } else {
+                videoEl.src = videoUrl;
+            }
+        } else {
+            videoEl.src = videoUrl;
+        }
+        let viewCounted = false;
+        videoEl.addEventListener("play", async function() {
+            if (viewCounted) return;
+            viewCounted = true;
+            try {
+                const res = await csrfFetch("/api/video/" + encodeURIComponent(video.name) + "/view", { method: "POST" });
+                const viewData = await res.json();
+                if (viewData.success) {
+                    const viewEl = div.querySelector(".viewCount");
+                    if (viewEl) viewEl.textContent = viewData.views + " 回視聴";
+                }
+            } catch (e) { console.error(e); }
+        });
+
+        container.appendChild(div);
+    });
+}
+
+function backFromPlaylistDetail() {
+    currentPage = 1;
+    showPlaylistList();
+}
+
+async function removeFromPlaylist(btn) {
+    const playlistId = btn.dataset.playlist;
+    const filename = btn.dataset.filename;
+    if (!confirm("この動画をプレイリストから削除しますか？")) return;
+    try {
+        const res = await csrfFetch("/api/playlists/" + encodeURIComponent(playlistId) + "/videos/" + encodeURIComponent(filename), {
+            method: "DELETE"
+        });
+        const data = await res.json();
+        if (data.success) {
+            btn.closest(".card").remove();
+            const remaining = document.getElementById("videos").querySelectorAll(".card").length;
+            if (remaining === 0) {
+                document.getElementById("videos").innerHTML = "";
+                document.getElementById("emptyPlaylist").style.display = "block";
+            }
+        } else {
+            alert(data.error || "エラーが発生しました");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("通信エラーが発生しました");
+    }
+}
+
+// --- Playlist CRUD ---
+
+function openCreatePlaylistModal() {
+    playlistModalMode = 'create';
+    editingPlaylistId = null;
+    document.getElementById("playlistModalTitle").textContent = "新しいプレイリスト";
+    document.getElementById("playlistModalSubmitBtn").textContent = "作成";
+    document.getElementById("playlistNameInput").value = "";
+    document.getElementById("playlistDescInput").value = "";
+    document.getElementById("playlistPublicCheck").checked = true;
+    document.getElementById("playlistModalError").style.display = "none";
+    document.getElementById("playlistModal").classList.add("active");
+    document.getElementById("playlistNameInput").focus();
+}
+
+function openEditPlaylistFromDetail() {
+    const id = document.getElementById("editPlaylistBtn").dataset.playlistId;
+    openEditPlaylistModal(id);
+}
+
+async function openEditPlaylistModal(id) {
+    try {
+        const res = await fetch("/api/playlists/" + encodeURIComponent(id));
+        const data = await res.json();
+        if (data.success && data.playlist) {
+            const pl = data.playlist;
+            playlistModalMode = 'edit';
+            editingPlaylistId = id;
+            document.getElementById("playlistModalTitle").textContent = "プレイリストを編集";
+            document.getElementById("playlistModalSubmitBtn").textContent = "保存";
+            document.getElementById("playlistNameInput").value = pl.title;
+            document.getElementById("playlistDescInput").value = pl.description || "";
+            document.getElementById("playlistPublicCheck").checked = !!pl.isPublic;
+            document.getElementById("playlistModalError").style.display = "none";
+            document.getElementById("playlistModal").classList.add("active");
+            document.getElementById("playlistNameInput").focus();
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function closePlaylistModal() {
+    document.getElementById("playlistModal").classList.remove("active");
+}
+
+async function submitPlaylistModal() {
+    const title = document.getElementById("playlistNameInput").value.trim();
+    const description = document.getElementById("playlistDescInput").value.trim();
+    const isPublic = document.getElementById("playlistPublicCheck").checked;
+    const errorEl = document.getElementById("playlistModalError");
+
+    if (!title) {
+        errorEl.textContent = "プレイリスト名を入力してください";
+        errorEl.style.display = "block";
+        return;
+    }
+    if (title.length > 100) {
+        errorEl.textContent = "プレイリスト名は100文字以内で入力してください";
+        errorEl.style.display = "block";
+        return;
+    }
+
+    errorEl.style.display = "none";
+
+    try {
+        let res;
+        if (playlistModalMode === 'create') {
+            res = await csrfFetch("/api/playlists", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, description, isPublic })
+            });
+        } else {
+            res = await csrfFetch("/api/playlists/" + encodeURIComponent(editingPlaylistId), {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, description, isPublic })
+            });
+        }
+        const data = await res.json();
+        if (data.success) {
+            closePlaylistModal();
+            if (currentView === 'playlist-list') {
+                showPlaylistList();
+            } else if (currentView === 'playlist-detail') {
+                showPlaylistDetail(currentPlaylistId);
+            }
+        } else {
+            errorEl.textContent = data.error || "エラーが発生しました";
+            errorEl.style.display = "block";
+        }
+    } catch (e) {
+        console.error(e);
+        errorEl.textContent = "通信エラーが発生しました";
+        errorEl.style.display = "block";
+    }
+}
+
+async function deletePlaylist(id) {
+    if (!confirm("このプレイリストを削除しますか？")) return;
+    try {
+        const res = await csrfFetch("/api/playlists/" + encodeURIComponent(id), {
+            method: "DELETE"
+        });
+        const data = await res.json();
+        if (data.success) {
+            if (currentPlaylistId === id) {
+                currentPlaylistId = null;
+                showPlaylistList();
+            } else {
+                showPlaylistList();
+            }
+        } else {
+            alert(data.error || "エラーが発生しました");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("通信エラーが発生しました");
+    }
+}
+
+// --- Add to playlist dropdown ---
+
+function openAddToPlaylistDropdown(btn, filename) {
+    closeAddToPlaylistDropdown();
+
+    const dropdown = document.getElementById("addToPlaylistDropdown");
+    const rect = btn.getBoundingClientRect();
+
+    dropdown.style.top = (rect.bottom + 4) + "px";
+    dropdown.style.left = Math.min(rect.left, window.innerWidth - 260) + "px";
+
+    dropdown.innerHTML = '<div class="dropdownHeader">プレイリストに追加</div><div style="padding:20px;text-align:center;color:#6c6c82;font-size:13px">読み込み中...</div>';
+    dropdown.style.display = "block";
+
+    fetch("/api/playlists").then(r => r.json()).then(data => {
+        if (data.success && data.playlists) {
+            const playlists = data.playlists;
+            let html = '<div class="dropdownHeader">プレイリストに追加</div>';
+            if (playlists.length === 0) {
+                html += '<div style="padding:20px;text-align:center;color:#6c6c82;font-size:13px">プレイリストがありません</div>';
+            } else {
+                playlists.forEach(pl => {
+                    const has = (pl.videoFilenames || []).includes(filename);
+                    html += '<div class="playlistOption" onclick="toggleVideoInPlaylist(\'' + pl.id + "','" + filename + "'," + (!has) + ',this)">' +
+                        '<span class="plTitle">' + escapeHtml(pl.title) + '</span>' +
+                        (has ? '<span class="plCheck">✓</span>' : '<span style="color:#6c6c82;font-size:12px">追加</span>') +
+                        '</div>';
+                });
+            }
+            html += '<div class="dropdownFooter"><button onclick="closeAddToPlaylistDropdown();openCreatePlaylistModal()">＋ 新しいプレイリスト</button></div>';
+            dropdown.innerHTML = html;
+        }
+    }).catch(() => {
+        dropdown.innerHTML = '<div class="dropdownHeader">プレイリストに追加</div><div style="padding:20px;text-align:center;color:#e53935;font-size:13px">読み込みエラー</div>';
+    });
+
+    dropdown.dataset.filename = filename;
+    setTimeout(() => {
+        function clickHandler(e) {
+            const dd = document.getElementById("addToPlaylistDropdown");
+            if (dd && !dd.contains(e.target)) {
+                closeAddToPlaylistDropdown();
+                document.removeEventListener("click", clickHandler);
+            }
+        }
+        document.addEventListener("click", clickHandler);
+    }, 10);
+}
+
+function closeAddToPlaylistDropdown() {
+    const dropdown = document.getElementById("addToPlaylistDropdown");
+    if (dropdown) {
+        dropdown.style.display = "none";
+        dropdown.innerHTML = "";
+    }
+}
+
+async function toggleVideoInPlaylist(playlistId, filename, add, el) {
+    try {
+        if (add) {
+            await csrfFetch("/api/playlists/" + encodeURIComponent(playlistId) + "/videos", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ filename })
+            });
+        } else {
+            await csrfFetch("/api/playlists/" + encodeURIComponent(playlistId) + "/videos/" + encodeURIComponent(filename), {
+                method: "DELETE"
+            });
+        }
+        const filename2 = document.getElementById("addToPlaylistDropdown").dataset.filename;
+        openAddToPlaylistDropdown(document.querySelector('.addToPlaylistBtn[data-filename="' + filename2 + '"]') || document.querySelector('[onclick*="' + filename2 + '"]'), filename2);
+    } catch (e) {
+        console.error(e);
+        alert("エラーが発生しました");
+    }
+}
+
+// --- Channel public playlists ---
+async function showChannelPlaylists(username) {
+    document.getElementById("videos").innerHTML = '<div class="empty">読み込み中...</div>';
+    try {
+        const res = await fetch("/api/playlists/public/" + encodeURIComponent(username));
+        const data = await res.json();
+        if (data.success && data.playlists.length > 0) {
+            const container = document.getElementById("videos");
+            let html = '<div style="margin-top:24px;margin-bottom:12px"><h3 style="margin:0;font-size:18px;font-weight:600;color:#d0d0e0">公開プレイリスト</h3></div>' +
+                '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px">';
+            data.playlists.forEach(pl => {
+                html += '<div class="playlistCard" onclick="showPlaylistDetail(\'' + pl.id + '\')">' +
+                    '<div class="thumbWrap">' +
+                    (pl.firstVideoThumbnail
+                        ? '<img src="' + pl.firstVideoThumbnail + '" alt="">'
+                        : '<div class="thumbPlaceholder">📋</div>') +
+                    '<div class="thumbOverlay"><span>' + pl.videoCount + ' 件の動画</span>' +
+                    '<span class="privacyBadge public">🌐 公開</span></div></div>' +
+                    '<div class="cardBody">' +
+                    '<div class="playlistTitle">' + escapeHtml(pl.title) + '</div>' +
+                    (pl.description ? '<div class="playlistDesc">' + escapeHtml(pl.description) + '</div>' : '') +
+                    '<div class="playlistMeta">' + escapeHtml(pl.username) + ' · ' + formatNotifTime(pl.updatedAt) + '</div></div></div>';
+            });
+            html += '</div>';
+            const existingEmpty = container.querySelector(".empty");
+            if (existingEmpty) {
+                container.innerHTML = existingEmpty.outerHTML + html;
+            } else {
+                container.insertAdjacentHTML("beforeend", html);
+            }
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+        closePlaylistModal();
+        closeAddToPlaylistDropdown();
+    }
+});
+
 // --- Keyboard shortcuts ---
 function setupKeyboardShortcuts() {
     document.addEventListener("keydown", function(e) {
@@ -3013,6 +3793,11 @@ function initRouting() {
                         break;
                     case 'ranking': showRanking(currentPeriod); break;
                     case 'bookmarks': showBookmarks(); break;
+                    case 'playlist-list': showPlaylistList(); break;
+                    case 'playlist-detail':
+                        currentPlaylistId = s.playlistId;
+                        showPlaylistDetail(s.playlistId);
+                        break;
                 }
                 if (s.scrollY) setTimeout(() => window.scrollTo(0, s.scrollY), 50);
             } else {

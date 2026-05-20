@@ -84,6 +84,7 @@ const thumbnailsDir = path.join(uploadDir, "thumbnails");
 const profilesPath = path.join(__dirname, "profiles.json");
 const avatarsDir = path.join(uploadDir, "avatars");
 const notificationsPath = path.join(__dirname, "notifications.json");
+const playlistsPath = path.join(__dirname, "playlists.json");
 
 [uploadDir, hlsDir, tempDir, chunksDir, thumbnailsDir, avatarsDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
@@ -198,6 +199,18 @@ function loadNotifications() {
 
 function saveNotifications(data) {
     fs.writeFileSync(notificationsPath, JSON.stringify(data, null, 2));
+}
+
+function loadPlaylists() {
+    try {
+        return JSON.parse(fs.readFileSync(playlistsPath, "utf8"));
+    } catch {
+        return {};
+    }
+}
+
+function savePlaylists(data) {
+    fs.writeFileSync(playlistsPath, JSON.stringify(data, null, 2));
 }
 
 function requireAuth(req, res, next) {
@@ -1201,6 +1214,15 @@ app.delete("/api/video/:filename", requireAuth, csrfProtection, (req, res) => {
         }
         saveBookmarks(bookmarks);
 
+        const playlists = loadPlaylists();
+        for (const playlist of Object.values(playlists)) {
+            const idx = playlist.videoFilenames.indexOf(req.params.filename);
+            if (idx !== -1) {
+                playlist.videoFilenames.splice(idx, 1);
+            }
+        }
+        savePlaylists(playlists);
+
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -1585,6 +1607,16 @@ app.delete("/api/admin/user/:username", requireAuth, requireAdmin, csrfProtectio
         delete notifications[targetUser];
         saveNotifications(notifications);
 
+        const playlists = loadPlaylists();
+        for (const [pid, pl] of Object.entries(playlists)) {
+            if (pl.username === targetUser) {
+                delete playlists[pid];
+            } else {
+                pl.videoFilenames = pl.videoFilenames.filter(f => !userVideos.includes(f));
+            }
+        }
+        savePlaylists(playlists);
+
         delete users[targetUser];
         saveUsers(users);
 
@@ -1655,6 +1687,252 @@ app.delete("/api/admin/video/:filename/comment/:id", requireAuth, requireAdmin, 
 
         console.log(`[ADMIN] ${req.session.userId} deleted comment ${req.params.id} by ${removed.username} on ${req.params.filename}`);
         res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// --- Playlist API ---
+
+app.post("/api/playlists", requireAuth, csrfProtection, (req, res) => {
+    try {
+        const { title, description, isPublic } = req.body;
+        if (!title || !title.trim()) {
+            return res.status(400).json({ success: false, error: "プレイリスト名を入力してください" });
+        }
+        if (title.trim().length > 100) {
+            return res.status(400).json({ success: false, error: "プレイリスト名は100文字以内で入力してください" });
+        }
+        if (description && description.length > 500) {
+            return res.status(400).json({ success: false, error: "説明文は500文字以内で入力してください" });
+        }
+
+        const playlists = loadPlaylists();
+        const id = crypto.randomUUID();
+        playlists[id] = {
+            id,
+            title: title.trim(),
+            description: (description || "").trim(),
+            isPublic: !!isPublic,
+            username: req.session.userId,
+            videoFilenames: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        savePlaylists(playlists);
+        res.json({ success: true, playlist: playlists[id] });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/playlists", requireAuth, (req, res) => {
+    try {
+        const playlists = loadPlaylists();
+        const userPlaylists = Object.values(playlists)
+            .filter(p => p.username === req.session.userId)
+            .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        res.json({ success: true, playlists: userPlaylists });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/playlists/:id", (req, res) => {
+    try {
+        const playlists = loadPlaylists();
+        const playlist = playlists[req.params.id];
+        if (!playlist) {
+            return res.status(404).json({ success: false, error: "プレイリストが見つかりません" });
+        }
+        if (!playlist.isPublic && (!req.session.userId || req.session.userId !== playlist.username)) {
+            return res.status(403).json({ success: false, error: "このプレイリストは非公開です" });
+        }
+
+        const metadata = loadMetadata();
+        const files = readVideoFiles();
+        const bookmarks = loadBookmarks();
+        const userBookmarks = bookmarks[req.session.userId] || [];
+
+        const videos = playlist.videoFilenames
+            .filter(file => files.includes(file) && metadata[file])
+            .map(file => {
+                const meta = metadata[file] || {};
+                return {
+                    name: file,
+                    url: getVideoUrl(file, meta),
+                    title: meta.title || file,
+                    description: meta.description || "",
+                    tags: meta.tags || [],
+                    uploadedBy: meta.uploadedBy || null,
+                    likes: meta.likes?.length || 0,
+                    likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
+                    bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
+                    views: meta.views || 0,
+                    thumbnailUrl: getVideoThumbnailUrl(file),
+                    duration: meta.duration || 0
+                };
+            });
+
+        res.json({
+            success: true,
+            playlist: {
+                ...playlist,
+                videoFilenames: undefined
+            },
+            videos
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.patch("/api/playlists/:id", requireAuth, csrfProtection, (req, res) => {
+    try {
+        const playlists = loadPlaylists();
+        const playlist = playlists[req.params.id];
+        if (!playlist) {
+            return res.status(404).json({ success: false, error: "プレイリストが見つかりません" });
+        }
+        if (playlist.username !== req.session.userId) {
+            return res.status(403).json({ success: false, error: "自分のプレイリストのみ編集できます" });
+        }
+
+        const { title, description, isPublic } = req.body;
+        if (title !== undefined) {
+            if (!title.trim()) {
+                return res.status(400).json({ success: false, error: "プレイリスト名を入力してください" });
+            }
+            if (title.trim().length > 100) {
+                return res.status(400).json({ success: false, error: "プレイリスト名は100文字以内で入力してください" });
+            }
+            playlist.title = title.trim();
+        }
+        if (description !== undefined) {
+            if (description.length > 500) {
+                return res.status(400).json({ success: false, error: "説明文は500文字以内で入力してください" });
+            }
+            playlist.description = description.trim();
+        }
+        if (isPublic !== undefined) {
+            playlist.isPublic = !!isPublic;
+        }
+        playlist.updatedAt = new Date().toISOString();
+        savePlaylists(playlists);
+        res.json({ success: true, playlist });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.delete("/api/playlists/:id", requireAuth, csrfProtection, (req, res) => {
+    try {
+        const playlists = loadPlaylists();
+        const playlist = playlists[req.params.id];
+        if (!playlist) {
+            return res.status(404).json({ success: false, error: "プレイリストが見つかりません" });
+        }
+        if (playlist.username !== req.session.userId) {
+            return res.status(403).json({ success: false, error: "自分のプレイリストのみ削除できます" });
+        }
+        delete playlists[req.params.id];
+        savePlaylists(playlists);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post("/api/playlists/:id/videos", requireAuth, csrfProtection, (req, res) => {
+    try {
+        const { filename } = req.body;
+        if (!filename) {
+            return res.status(400).json({ success: false, error: "動画が指定されていません" });
+        }
+
+        const metadata = loadMetadata();
+        if (!metadata[filename]) {
+            return res.status(404).json({ success: false, error: "動画が見つかりません" });
+        }
+
+        const playlists = loadPlaylists();
+        const playlist = playlists[req.params.id];
+        if (!playlist) {
+            return res.status(404).json({ success: false, error: "プレイリストが見つかりません" });
+        }
+        if (playlist.username !== req.session.userId) {
+            return res.status(403).json({ success: false, error: "自分のプレイリストのみ編集できます" });
+        }
+
+        if (!playlist.videoFilenames.includes(filename)) {
+            playlist.videoFilenames.push(filename);
+            playlist.updatedAt = new Date().toISOString();
+            savePlaylists(playlists);
+        }
+
+        res.json({ success: true, playlist });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.delete("/api/playlists/:id/videos/:filename", requireAuth, csrfProtection, (req, res) => {
+    try {
+        const playlists = loadPlaylists();
+        const playlist = playlists[req.params.id];
+        if (!playlist) {
+            return res.status(404).json({ success: false, error: "プレイリストが見つかりません" });
+        }
+        if (playlist.username !== req.session.userId) {
+            return res.status(403).json({ success: false, error: "自分のプレイリストのみ編集できます" });
+        }
+
+        const idx = playlist.videoFilenames.indexOf(req.params.filename);
+        if (idx !== -1) {
+            playlist.videoFilenames.splice(idx, 1);
+            playlist.updatedAt = new Date().toISOString();
+            savePlaylists(playlists);
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/playlists/public/:username", (req, res) => {
+    try {
+        const playlists = loadPlaylists();
+        const userPlaylists = Object.values(playlists)
+            .filter(p => p.username === req.params.username && p.isPublic)
+            .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+        const result = userPlaylists.map(p => {
+            const metadata = loadMetadata();
+            const files = readVideoFiles();
+            const validVideos = p.videoFilenames.filter(f => files.includes(f) && metadata[f]);
+            const firstVideo = validVideos.length > 0 ? metadata[validVideos[0]] : null;
+            return {
+                id: p.id,
+                title: p.title,
+                description: p.description,
+                username: p.username,
+                videoCount: validVideos.length,
+                firstVideoThumbnail: validVideos.length > 0 ? getVideoThumbnailUrl(validVideos[0]) : null,
+                createdAt: p.createdAt,
+                updatedAt: p.updatedAt
+            };
+        });
+
+        res.json({ success: true, playlists: result });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
