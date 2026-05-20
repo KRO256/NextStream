@@ -773,6 +773,46 @@ video{
     justify-content:flex-end;
 }
 
+.notifItem{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:12px 16px;
+    border-bottom:1px solid rgba(255,255,255,0.04);
+    cursor:pointer;
+    transition:0.15s;
+    font-size:13px;
+}
+.notifItem:hover{
+    background:rgba(124,77,255,0.08);
+}
+.notifItem.unread{
+    background:rgba(124,77,255,0.04);
+    border-left:3px solid #7c4dff;
+}
+.notifIcon{
+    font-size:20px;
+    flex-shrink:0;
+    margin-top:2px;
+}
+.notifBody{
+    flex:1;
+    min-width:0;
+}
+.notifBody .notifText{
+    color:#d0d0e0;
+    line-height:1.4;
+    word-break:break-word;
+}
+.notifBody .notifText strong{
+    color:white;
+}
+.notifBody .notifTime{
+    color:#6c6c82;
+    font-size:11px;
+    margin-top:4px;
+}
+
 .userMenu{
     display:flex;
     align-items:center;
@@ -1097,6 +1137,17 @@ NextStream
 <div class="actions">
 
 <button
+id="notificationBtn"
+class="uploadBtn secondary"
+onclick="toggleNotifications()"
+style="display:none;position:relative;padding:8px 14px">
+
+<span style="font-size:18px">🔔</span>
+<span id="notificationBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#e53935;color:white;font-size:10px;font-weight:700;padding:2px 6px;border-radius:999px;line-height:1.2;min-width:16px;text-align:center">0</span>
+
+</button>
+
+<button
 id="bookmarkBtn"
 class="uploadBtn secondary"
 onclick="currentPage=1;showBookmarks()"
@@ -1137,6 +1188,16 @@ onclick="clearSearch()">
 </div>
 
 </header>
+
+<div id="notificationDropdown" style="display:none;position:fixed;top:70px;right:24px;width:380px;max-height:480px;background:#1a1a22;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;z-index:300;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <span style="font-weight:600;font-size:15px">通知</span>
+        <button id="markAllReadBtn" class="uploadBtn secondary" style="padding:4px 12px;font-size:11px" onclick="markAllNotificationsRead()">すべて既読</button>
+    </div>
+    <div id="notificationList" style="overflow-y:auto;max-height:400px">
+        <div style="padding:30px 16px;text-align:center;color:#6c6c82;font-size:14px">読み込み中...</div>
+    </div>
+</div>
 
 <section class="hero">
 
@@ -1385,8 +1446,10 @@ async function checkAuth() {
 function renderAuthArea() {
     const area = document.getElementById("authArea");
     const bookmarkBtn = document.getElementById("bookmarkBtn");
+    const notifBtn = document.getElementById("notificationBtn");
     if (currentUser) {
         bookmarkBtn.style.display = "";
+        notifBtn.style.display = "";
         area.innerHTML = `
             <a href="/upload.html" class="uploadBtn">＋ アップロード</a>
             <div class="userMenu">
@@ -1396,8 +1459,10 @@ function renderAuthArea() {
                 <button class="uploadBtn danger" onclick="openDeleteModal()" style="padding:8px 12px;font-size:12px">削除</button>
             </div>
         `;
+        updateUnreadCount();
     } else {
         bookmarkBtn.style.display = "none";
+        notifBtn.style.display = "none";
         area.innerHTML = `
             <button class="uploadBtn" onclick="openAuthModal()">ログイン</button>
         `;
@@ -1494,6 +1559,8 @@ async function logout() {
     await csrfFetch("/api/logout", { method: "POST" });
     currentUser = null;
     csrfToken = null;
+    document.getElementById("notificationDropdown").style.display = "none";
+    notificationsOpen = false;
     renderAuthArea();
 }
 
@@ -2395,6 +2462,122 @@ async function showBookmarks() {
     }
 }
 
+// --- Notifications ---
+
+let notificationsOpen = false;
+
+function toggleNotifications() {
+    const dropdown = document.getElementById("notificationDropdown");
+    if (notificationsOpen) {
+        dropdown.style.display = "none";
+        notificationsOpen = false;
+    } else {
+        fetchNotifications();
+        dropdown.style.display = "block";
+        notificationsOpen = true;
+    }
+}
+
+document.addEventListener("click", function(e) {
+    const dropdown = document.getElementById("notificationDropdown");
+    const notifBtn = document.getElementById("notificationBtn");
+    if (notificationsOpen && dropdown && notifBtn && !dropdown.contains(e.target) && !notifBtn.contains(e.target)) {
+        dropdown.style.display = "none";
+        notificationsOpen = false;
+    }
+});
+
+async function fetchNotifications() {
+    const listEl = document.getElementById("notificationList");
+    try {
+        const res = await fetch("/api/notifications?limit=20");
+        const data = await res.json();
+        if (data.success) {
+            if (data.notifications.length === 0) {
+                listEl.innerHTML = '<div style="padding:30px 16px;text-align:center;color:#6c6c82;font-size:14px">通知はまだありません</div>';
+            } else {
+                listEl.innerHTML = data.notifications.map(n => {
+                    const time = formatNotifTime(n.createdAt);
+                    const isUnread = !n.read;
+                    return '<div class="notifItem' + (isUnread ? ' unread' : '') + '" data-id="' + n.id + '" onclick="openNotifVideo(\'' + n.videoFilename + '\', \'' + n.id + '\')">' +
+                        '<div class="notifIcon">🎵</div>' +
+                        '<div class="notifBody">' +
+                            '<div class="notifText"><strong>' + escapeHtml(n.from) + '</strong> が新しい動画をアップロードしました<br><span style="color:#b8b8ff">' + escapeHtml(n.videoTitle) + '</span></div>' +
+                            '<div class="notifTime">' + time + '</div>' +
+                        '</div>' +
+                    '</div>';
+                }).join("");
+            }
+            document.getElementById("markAllReadBtn").style.display = data.notifications.some(n => !n.read) ? "" : "none";
+            updateBadge(data.unread);
+        }
+    } catch (e) {
+        console.error(e);
+        listEl.innerHTML = '<div style="padding:30px 16px;text-align:center;color:#6c6c82;font-size:14px">読み込みエラー</div>';
+    }
+}
+
+async function openNotifVideo(filename, notifId) {
+    try {
+        await csrfFetch("/api/notifications/read/" + notifId, { method: "POST" });
+    } catch (e) {}
+    updateUnreadCount();
+    document.getElementById("notificationDropdown").style.display = "none";
+    notificationsOpen = false;
+    currentPage = 1;
+    navigateToVideo(filename);
+}
+
+async function markAllNotificationsRead() {
+    try {
+        await csrfFetch("/api/notifications/read", { method: "POST" });
+        document.querySelectorAll("#notificationList .notifItem").forEach(el => el.classList.remove("unread"));
+        document.getElementById("markAllReadBtn").style.display = "none";
+        updateBadge(0);
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function updateUnreadCount() {
+    if (!currentUser) return;
+    try {
+        const res = await fetch("/api/notifications/unread-count");
+        const data = await res.json();
+        if (data.success) {
+            updateBadge(data.unread);
+        }
+    } catch (e) {}
+}
+
+function updateBadge(count) {
+    const badge = document.getElementById("notificationBadge");
+    if (count > 0) {
+        badge.textContent = count > 99 ? "99+" : count;
+        badge.style.display = "";
+    } else {
+        badge.style.display = "none";
+    }
+}
+
+function formatNotifTime(iso) {
+    const date = new Date(iso);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHour = Math.floor(diffMs / 3600000);
+    const diffDay = Math.floor(diffMs / 86400000);
+    if (diffMin < 1) return "たった今";
+    if (diffMin < 60) return diffMin + "分前";
+    if (diffHour < 24) return diffHour + "時間前";
+    if (diffDay < 7) return diffDay + "日前";
+    return date.toLocaleDateString("ja-JP");
+}
+
+function startNotificationPolling() {
+    setInterval(updateUnreadCount, 30000);
+}
+
 // --- Video detail page & routing ---
 
 let videoDetailData = null;
@@ -2869,6 +3052,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 setupKeyboardShortcuts();
+startNotificationPolling();
 checkAuth().then(() => {
     initRouting();
     if (!getFilenameFromPath()) {

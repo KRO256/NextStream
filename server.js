@@ -83,6 +83,7 @@ const progressPath = path.join(__dirname, "progress.json");
 const thumbnailsDir = path.join(uploadDir, "thumbnails");
 const profilesPath = path.join(__dirname, "profiles.json");
 const avatarsDir = path.join(uploadDir, "avatars");
+const notificationsPath = path.join(__dirname, "notifications.json");
 
 [uploadDir, hlsDir, tempDir, chunksDir, thumbnailsDir, avatarsDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
@@ -185,6 +186,18 @@ function loadProfiles() {
 
 function saveProfiles(data) {
     fs.writeFileSync(profilesPath, JSON.stringify(data, null, 2));
+}
+
+function loadNotifications() {
+    try {
+        return JSON.parse(fs.readFileSync(notificationsPath, "utf8"));
+    } catch {
+        return {};
+    }
+}
+
+function saveNotifications(data) {
+    fs.writeFileSync(notificationsPath, JSON.stringify(data, null, 2));
 }
 
 function requireAuth(req, res, next) {
@@ -382,6 +395,10 @@ app.delete("/api/account", requireAuth, csrfProtection, async (req, res) => {
             saveProfiles(profiles);
         }
 
+        const notifications = loadNotifications();
+        delete notifications[req.session.userId];
+        saveNotifications(notifications);
+
         req.session.destroy();
         res.json({ success: true });
     } catch (err) {
@@ -544,6 +561,35 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                             saveMetadata(meta);
                         }
                         console.log("HLS READY:", safeName);
+
+                        const uploader = req.session.userId;
+                        const videoTitle = meta[safeName]?.title || safeName;
+                        try {
+                            const subs = loadSubscriptions();
+                            const subscribers = subs[uploader] || [];
+                            if (subscribers.length > 0) {
+                                const notifications = loadNotifications();
+                                const notification = {
+                                    id: crypto.randomUUID(),
+                                    type: "new_video",
+                                    from: uploader,
+                                    videoFilename: safeName,
+                                    videoTitle: videoTitle,
+                                    createdAt: new Date().toISOString(),
+                                    read: false
+                                };
+                                for (const subscriber of subscribers) {
+                                    if (!notifications[subscriber]) {
+                                        notifications[subscriber] = [];
+                                    }
+                                    notifications[subscriber].unshift({ ...notification });
+                                }
+                                saveNotifications(notifications);
+                                console.log("NOTIFICATIONS SENT to", subscribers.length, "subscribers of", uploader);
+                            }
+                        } catch (notifErr) {
+                            console.error("notification error:", notifErr);
+                        }
 
                         const thumbPath = path.join(thumbnailsDir, safeName + ".jpg");
                         const ffmpegThumb = spawn("ffmpeg", [
@@ -822,6 +868,71 @@ app.get("/api/channel/:username/subscribers", (req, res) => {
             subscribers: subs.length,
             subscribed: req.session.userId ? subs.includes(req.session.userId) : false
         });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/notifications", requireAuth, (req, res) => {
+    try {
+        const notifications = loadNotifications();
+        const userNotifs = notifications[req.session.userId] || [];
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+        const start = (page - 1) * limit;
+        const total = userNotifs.length;
+        const totalPages = Math.ceil(total / limit);
+        const paged = userNotifs.slice(start, start + limit);
+
+        res.json({ success: true, notifications: paged, total, page, limit, totalPages, unread: userNotifs.filter(n => !n.read).length });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/notifications/unread-count", requireAuth, (req, res) => {
+    try {
+        const notifications = loadNotifications();
+        const userNotifs = notifications[req.session.userId] || [];
+        const unread = userNotifs.filter(n => !n.read).length;
+        res.json({ success: true, unread });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post("/api/notifications/read", requireAuth, csrfProtection, (req, res) => {
+    try {
+        const notifications = loadNotifications();
+        if (notifications[req.session.userId]) {
+            for (const n of notifications[req.session.userId]) {
+                n.read = true;
+            }
+            saveNotifications(notifications);
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post("/api/notifications/read/:id", requireAuth, csrfProtection, (req, res) => {
+    try {
+        const notifications = loadNotifications();
+        const userNotifs = notifications[req.session.userId];
+        if (userNotifs) {
+            const notif = userNotifs.find(n => n.id === req.params.id);
+            if (notif) {
+                notif.read = true;
+                saveNotifications(notifications);
+            }
+        }
+        res.json({ success: true });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
@@ -1469,6 +1580,10 @@ app.delete("/api/admin/user/:username", requireAuth, requireAdmin, csrfProtectio
             delete profiles[targetUser];
             saveProfiles(profiles);
         }
+
+        const notifications = loadNotifications();
+        delete notifications[targetUser];
+        saveNotifications(notifications);
 
         delete users[targetUser];
         saveUsers(users);
