@@ -1695,12 +1695,15 @@ function renderAuthArea() {
             <a href="/upload.html" class="uploadBtn">＋ アップロード</a>
             <div class="userMenu">
                 ${isAdmin ? `<a href="/admin" class="uploadBtn secondary" style="padding:8px 14px;font-size:12px">⚙ 管理</a>` : ""}
+                <a href="/settings.html" class="uploadBtn secondary" style="padding:8px 14px;font-size:12px;text-decoration:none">設定</a>
                 <span class="userName" onclick="currentPage=1;showChannel(currentUser)">${escapeHtml(currentUser)}</span>
                 <button class="uploadBtn secondary" onclick="logout()">ログアウト</button>
                 <button class="uploadBtn danger" onclick="openDeleteModal()" style="padding:8px 12px;font-size:12px">削除</button>
             </div>
         `;
         updateUnreadCount();
+        loadNotificationPref();
+        requestNotificationPermission();
     } else {
         bookmarkBtn.style.display = "none";
         notifBtn.style.display = "none";
@@ -2717,6 +2720,8 @@ async function showBookmarks() {
 // --- Notifications ---
 
 let notificationsOpen = false;
+let lastUnreadCount = null;
+let notifDesktopEnabled = true;
 
 function toggleNotifications() {
     const dropdown = document.getElementById("notificationDropdown");
@@ -2791,12 +2796,59 @@ async function markAllNotificationsRead() {
     }
 }
 
+async function loadNotificationPref() {
+    try {
+        const res = await fetch("/api/settings/notifications");
+        const data = await res.json();
+        if (data.success) {
+            notifDesktopEnabled = data.enabled;
+        }
+    } catch (e) {}
+}
+
+function requestNotificationPermission() {
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+    }
+}
+
+async function showDesktopNotification() {
+    if (!notifDesktopEnabled) return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "default") {
+        const perm = await Notification.requestPermission();
+        if (perm !== "granted") return;
+    }
+    if (Notification.permission !== "granted") return;
+    try {
+        const res = await fetch("/api/notifications?limit=1");
+        const data = await res.json();
+        if (data.success && data.notifications.length > 0) {
+            const n = data.notifications[0];
+            const notif = new Notification("NextStream", {
+                body: n.from + " が新しい動画「" + n.videoTitle + "」をアップロードしました",
+                tag: "nextstream-" + n.id,
+                icon: "/favicon.ico"
+            });
+            notif.onclick = function() {
+                window.focus();
+                openNotifVideo(n.videoFilename, n.id);
+                this.close();
+            };
+        }
+    } catch (e) {}
+}
+
 async function updateUnreadCount() {
     if (!currentUser) return;
     try {
         const res = await fetch("/api/notifications/unread-count");
         const data = await res.json();
         if (data.success) {
+            if (lastUnreadCount !== null && data.unread > lastUnreadCount) {
+                showDesktopNotification();
+            }
+            lastUnreadCount = data.unread;
             updateBadge(data.unread);
         }
     } catch (e) {}

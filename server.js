@@ -1051,6 +1051,66 @@ app.post("/api/profile/avatar", requireAuth, csrfProtection, (req, res) => {
     });
 });
 
+app.get("/api/settings/notifications", requireAuth, (req, res) => {
+    try {
+        const profiles = loadProfiles();
+        const profile = profiles[req.session.userId] || {};
+        res.json({ success: true, enabled: profile.notificationsEnabled !== false });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.put("/api/settings/notifications", requireAuth, csrfProtection, (req, res) => {
+    try {
+        const { enabled } = req.body;
+        const profiles = loadProfiles();
+        if (!profiles[req.session.userId]) {
+            profiles[req.session.userId] = {};
+        }
+        profiles[req.session.userId].notificationsEnabled = enabled === true;
+        saveProfiles(profiles);
+        res.json({ success: true, enabled: profiles[req.session.userId].notificationsEnabled });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post("/api/settings/password", requireAuth, csrfProtection, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ success: false, error: "現在のパスワードと新しいパスワードを入力してください" });
+        }
+        if (newPassword.length < 4) {
+            return res.status(400).json({ success: false, error: "新しいパスワードは4文字以上で入力してください" });
+        }
+        if (currentPassword === newPassword) {
+            return res.status(400).json({ success: false, error: "新しいパスワードは現在のパスワードと異なるものを設定してください" });
+        }
+
+        const users = loadUsers();
+        const user = users[req.session.userId];
+        if (!user) {
+            return res.status(404).json({ success: false, error: "ユーザーが見つかりません" });
+        }
+
+        const match = await bcrypt.compare(currentPassword, user.password);
+        if (!match) {
+            return res.status(401).json({ success: false, error: "現在のパスワードが間違っています" });
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10);
+        saveUsers(users);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 app.post("/api/video/:filename/comment", requireAuth, csrfProtection, rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 20,

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>設定 - NextStream</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Inter",sans-serif;background:#0b0b0f;color:white}
+header{position:sticky;top:0;z-index:100;backdrop-filter:blur(18px);background:rgba(10,10,15,0.75);border-bottom:1px solid rgba(255,255,255,0.08);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.logo{font-size:26px;font-weight:700;background:linear-gradient(90deg,#7c4dff,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.actions{display:flex;align-items:center;gap:12px}
+.uploadBtn{background:linear-gradient(135deg,#7c4dff,#5b7cff);border:none;color:white;padding:12px 18px;border-radius:14px;font-weight:600;cursor:pointer;transition:0.2s;text-decoration:none;display:inline-block;font-size:14px}
+.uploadBtn:hover{transform:translateY(-2px);opacity:0.9}
+.uploadBtn.secondary{background:linear-gradient(135deg,#555,#777)}
+.userName{color:#b8b8ff;font-weight:600;font-size:14px}
+
+.container{max-width:640px;margin:0 auto;padding:48px 24px}
+.pageTitle{font-size:36px;font-weight:800;margin-bottom:8px}
+.pageSub{color:#a0a0b5;font-size:16px;margin-bottom:40px}
+
+.card{background:#13131a;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:28px;margin-bottom:24px}
+.cardTitle{font-size:18px;font-weight:700;margin-bottom:4px}
+.cardDesc{font-size:13px;color:#8c8ca3;margin-bottom:20px}
+
+.titleInput{background:#1a1a22;border:1px solid rgba(255,255,255,0.08);padding:12px 16px;border-radius:14px;color:white;font-family:"Inter",sans-serif;font-size:14px;outline:none;transition:0.2s;width:100%}
+.titleInput::placeholder{color:#6c6c82}
+.titleInput:focus{border-color:#7c4dff}
+
+.formGroup{margin-bottom:16px}
+.formGroup label{display:block;font-size:13px;color:#a0a0b5;margin-bottom:6px}
+
+.toggleRow{display:flex;align-items:center;justify-content:space-between;padding:12px 0}
+.toggleRow + .toggleRow{border-top:1px solid rgba(255,255,255,0.04)}
+.toggleLabel{font-size:15px;font-weight:500}
+.toggleDesc{font-size:12px;color:#8c8ca3;margin-top:2px}
+
+.toggle{position:relative;width:48px;height:26px;flex-shrink:0;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.toggle .slider{position:absolute;inset:0;background:#2a2a34;border-radius:999px;transition:0.25s}
+.toggle .slider::before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:white;border-radius:50%;transition:0.25s}
+.toggle input:checked+.slider{background:linear-gradient(135deg,#7c4dff,#5b7cff)}
+.toggle input:checked+.slider::before{transform:translateX(22px)}
+
+.successMsg{color:#4caf50;font-size:13px;margin-top:8px;display:none}
+.errorMsg{color:#e53935;font-size:13px;margin-top:8px;display:none}
+
+@media(max-width:600px){
+    .container{padding:32px 16px}
+    .pageTitle{font-size:28px}
+    header{flex-direction:column;align-items:flex-start}
+    .actions{width:100%;flex-wrap:wrap}
+    .uploadBtn{width:100%;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<header>
+<div class="logo">NextStream</div>
+<div class="actions">
+<a href="/" class="uploadBtn secondary">← ホーム</a>
+<span class="userName" id="userNameDisplay"></span>
+</div>
+</header>
+
+<div class="container">
+<div class="pageTitle">設定</div>
+<div class="pageSub">アカウント設定と通知の管理</div>
+
+<div class="card">
+<div class="cardTitle">通知設定</div>
+<div class="cardDesc">デスクトップ通知のオン／オフを切り替えます</div>
+<div class="toggleRow">
+<div>
+<div class="toggleLabel">デスクトップ通知</div>
+<div class="toggleDesc">新しい動画のアップロードをデスクトップで受け取る</div>
+</div>
+<label class="toggle">
+<input type="checkbox" id="notifToggle" onchange="toggleNotifications()">
+<span class="slider"></span>
+</label>
+</div>
+<div class="successMsg" id="notifSuccess">保存しました</div>
+<div class="errorMsg" id="notifError"></div>
+</div>
+
+<div class="card">
+<div class="cardTitle">パスワード変更</div>
+<div class="cardDesc">現在のパスワードと新しいパスワードを入力してください</div>
+<div class="formGroup">
+<label>現在のパスワード</label>
+<input type="password" id="currentPassword" class="titleInput" placeholder="現在のパスワード">
+</div>
+<div class="formGroup">
+<label>新しいパスワード</label>
+<input type="password" id="newPassword" class="titleInput" placeholder="新しいパスワード（4文字以上）">
+</div>
+<div class="formGroup">
+<label>新しいパスワード（確認）</label>
+<input type="password" id="confirmPassword" class="titleInput" placeholder="もう一度入力">
+</div>
+<button class="uploadBtn" onclick="changePassword()" id="passwordBtn">変更する</button>
+<div class="successMsg" id="passwordSuccess">パスワードを変更しました</div>
+<div class="errorMsg" id="passwordError"></div>
+</div>
+</div>
+
+<script>
+let currentUser = null;
+let csrfToken = null;
+
+async function checkAuth() {
+    try {
+        const res = await fetch("/api/me");
+        const data = await res.json();
+        if (data.success && data.user) {
+            currentUser = data.user;
+            document.getElementById("userNameDisplay").textContent = data.user;
+            csrfToken = data.csrfToken || null;
+            loadNotificationPref();
+        } else {
+            window.location.href = "/";
+        }
+    } catch (e) {
+        window.location.href = "/";
+    }
+}
+
+function csrfFetch(url, options = {}) {
+    const method = (options.method || "GET").toUpperCase();
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method) && csrfToken) {
+        options.headers = { ...options.headers, "X-CSRF-Token": csrfToken };
+    }
+    return fetch(url, options);
+}
+
+async function loadNotificationPref() {
+    try {
+        const res = await fetch("/api/settings/notifications");
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById("notifToggle").checked = data.enabled;
+        }
+    } catch (e) {}
+}
+
+async function toggleNotifications() {
+    const enabled = document.getElementById("notifToggle").checked;
+    const successEl = document.getElementById("notifSuccess");
+    const errorEl = document.getElementById("notifError");
+    successEl.style.display = "none";
+    errorEl.style.display = "none";
+    try {
+        const res = await csrfFetch("/api/settings/notifications", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        if (data.success) {
+            successEl.style.display = "block";
+            setTimeout(() => successEl.style.display = "none", 2000);
+        } else {
+            errorEl.textContent = data.error || "エラーが発生しました";
+            errorEl.style.display = "block";
+            document.getElementById("notifToggle").checked = !enabled;
+        }
+    } catch (e) {
+        errorEl.textContent = "通信エラーが発生しました";
+        errorEl.style.display = "block";
+        document.getElementById("notifToggle").checked = !enabled;
+    }
+}
+
+async function changePassword() {
+    const currentPassword = document.getElementById("currentPassword").value;
+    const newPassword = document.getElementById("newPassword").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+    const successEl = document.getElementById("passwordSuccess");
+    const errorEl = document.getElementById("passwordError");
+    const btn = document.getElementById("passwordBtn");
+    successEl.style.display = "none";
+    errorEl.style.display = "none";
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        errorEl.textContent = "すべての項目を入力してください";
+        errorEl.style.display = "block";
+        return;
+    }
+    if (newPassword.length < 4) {
+        errorEl.textContent = "新しいパスワードは4文字以上で入力してください";
+        errorEl.style.display = "block";
+        return;
+    }
+    if (newPassword !== confirmPassword) {
+        errorEl.textContent = "新しいパスワードと確認用パスワードが一致しません";
+        errorEl.style.display = "block";
+        return;
+    }
+
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+    try {
+        const res = await csrfFetch("/api/settings/password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+        const data = await res.json();
+        if (data.success) {
+            successEl.style.display = "block";
+            document.getElementById("currentPassword").value = "";
+            document.getElementById("newPassword").value = "";
+            document.getElementById("confirmPassword").value = "";
+            setTimeout(() => successEl.style.display = "none", 3000);
+        } else {
+            errorEl.textContent = data.error || "エラーが発生しました";
+            errorEl.style.display = "block";
+        }
+    } catch (e) {
+        errorEl.textContent = "通信エラーが発生しました";
+        errorEl.style.display = "block";
+    } finally {
+        btn.disabled = false;
+        btn.style.opacity = "1";
+    }
+}
+
+checkAuth();
+</script>
+</body>
+</html>
