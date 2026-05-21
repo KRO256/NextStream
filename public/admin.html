@@ -129,12 +129,100 @@ tr:hover td{background:rgba(124,77,255,0.04)}
     flex:1;max-width:320px;transition:0.2s;
 }
 .searchInput:focus{border-color:#7c4dff}
+@media(max-width:900px){
+    .stats{gap:12px}
+    .statCard{min-width:120px}
+}
 @media(max-width:700px){
     .container{padding:16px}
     table{font-size:12px}
     th,td{padding:8px}
     .statCard{padding:12px 16px;min-width:100px}
     .statCard .num{font-size:22px}
+    header{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:10px;
+    }
+    header > div{
+        width:100%;
+        justify-content:space-between;
+    }
+    .tabBar{gap:4px}
+    .tab{font-size:12px;padding:8px 14px}
+    .searchBar{flex-direction:column}
+    .searchInput{max-width:none;width:100%}
+    h1{font-size:22px}
+}
+@media(max-width:500px){
+    .container{padding:12px}
+    h1{font-size:20px}
+    .subtitle{font-size:13px}
+    .stats{gap:8px}
+    .statCard{padding:10px 12px;min-width:calc(50% - 8px);flex:1 1 calc(50% - 8px)}
+    .statCard .num{font-size:20px}
+    .statCard .label{font-size:11px}
+    .tab{font-size:11px;padding:6px 10px}
+    .tabBar{gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap}
+    .tabBar::-webkit-scrollbar{display:none}
+    .tab{flex-shrink:0;white-space:nowrap}
+
+    /* Convert tables to cards */
+    .panel table, .panel thead, .panel tbody, .panel th, .panel td, .panel tr{
+        display:block;
+    }
+    .panel thead{
+        display:none;
+    }
+    .panel table tr{
+        background:rgba(255,255,255,0.04);
+        border:1px solid rgba(255,255,255,0.06);
+        border-radius:14px;
+        padding:14px;
+        margin-bottom:12px;
+    }
+    .panel table tr:hover td{
+        background:transparent;
+    }
+    .panel table td{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:8px;
+        border-bottom:1px solid rgba(255,255,255,0.04);
+        padding:8px 0;
+    }
+    .panel table td:last-child{
+        border-bottom:none;
+        padding-bottom:0;
+    }
+    .panel table td::before{
+        content:attr(data-label);
+        font-size:11px;
+        font-weight:600;
+        color:#6c6c82;
+        text-transform:uppercase;
+        letter-spacing:0.3px;
+        flex-shrink:0;
+    }
+    .panel table td > *{
+        text-align:right;
+    }
+    .panel table td .commentPreview{
+        max-width:180px;
+    }
+    .modal{
+        margin:16px;
+        padding:24px 20px;
+        max-width:none;
+        width:auto;
+    }
+    .btnSecondary, .btnDanger{
+        padding:8px 16px;
+        font-size:13px;
+    }
+    .backBtn{font-size:12px;padding:6px 14px}
+    .logo{font-size:18px}
 }
 .commentPreview{color:#a0a0b5;font-size:13px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .userCell{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -329,14 +417,14 @@ function renderVideos(filter) {
             </tr></thead>
             <tbody>${list.map(v => `
                 <tr>
-                    <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    <td data-label="タイトル" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
                         <span title="${escapeHtml(v.title)}">${escapeHtml(v.title)}</span>
                     </td>
-                    <td>${v.uploadedBy ? escapeHtml(v.uploadedBy) : '<span style="color:#6c6c82">—</span>'}</td>
-                    <td>${v.views.toLocaleString()}</td>
-                    <td>${v.likes.toLocaleString()}</td>
-                    <td>${v.commentCount}</td>
-                    <td><button class="deleteBtn" onclick="confirmDeleteVideo('${v.name.replace(/'/g, "\\'")}')">削除</button></td>
+                    <td data-label="アップロード者">${v.uploadedBy ? escapeHtml(v.uploadedBy) : '<span style="color:#6c6c82">—</span>'}</td>
+                    <td data-label="再生回数">${v.views.toLocaleString()}</td>
+                    <td data-label="いいね">${v.likes.toLocaleString()}</td>
+                    <td data-label="コメント">${v.commentCount}</td>
+                    <td data-label=""><button class="deleteBtn" onclick="confirmDeleteVideo('${v.name.replace(/'/g, "\\'")}')">削除</button></td>
                 </tr>
             `).join("")}</tbody>
         </table>
@@ -367,17 +455,17 @@ function renderUsers(filter) {
                 const rowClass = isSelf ? 'selfRow' : (u.admin ? 'adminRow' : '');
                 return `
                 <tr class="${rowClass}">
-                    <td>
+                    <td data-label="ユーザー名">
                         <div class="userCell">
                             ${escapeHtml(u.username)}
                             ${u.admin ? '<span class="adminBadge">ADMIN</span>' : ''}
                             ${isSelf ? '<span style="color:#6c6c82;font-size:11px">（自分）</span>' : ''}
                         </div>
                     </td>
-                    <td style="color:#8c8ca3;font-size:13px">${new Date(u.createdAt).toLocaleDateString("ja-JP")}</td>
-                    <td>${u.videoCount}</td>
-                    <td>${u.commentCount}</td>
-                    <td>${!isSelf && !u.admin ? `<button class="deleteBtn" onclick="confirmDeleteUser('${u.username.replace(/'/g, "\\'")}')">削除</button>` : ''}</td>
+                    <td data-label="登録日" style="color:#8c8ca3;font-size:13px">${new Date(u.createdAt).toLocaleDateString("ja-JP")}</td>
+                    <td data-label="動画数">${u.videoCount}</td>
+                    <td data-label="コメント数">${u.commentCount}</td>
+                    <td data-label="">${!isSelf && !u.admin ? `<button class="deleteBtn" onclick="confirmDeleteUser('${u.username.replace(/'/g, "\\'")}')">削除</button>` : ''}</td>
                 </tr>
             `}).join("")}</tbody>
         </table>
@@ -409,13 +497,13 @@ function renderComments(filter) {
             </tr></thead>
             <tbody>${list.map(c => `
                 <tr>
-                    <td><span style="color:#b8b8ff;font-weight:500">${escapeHtml(c.username)}</span></td>
-                    <td><span class="commentPreview" title="${escapeHtml(c.text)}">${escapeHtml(c.text)}</span></td>
-                    <td style="color:#8c8ca3;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    <td data-label="投稿者"><span style="color:#b8b8ff;font-weight:500">${escapeHtml(c.username)}</span></td>
+                    <td data-label="コメント"><span class="commentPreview" title="${escapeHtml(c.text)}">${escapeHtml(c.text)}</span></td>
+                    <td data-label="動画" style="color:#8c8ca3;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
                         ${escapeHtml(c.videoTitle)}
                     </td>
-                    <td style="color:#6c6c82;font-size:12px;white-space:nowrap">${new Date(c.createdAt).toLocaleString("ja-JP")}</td>
-                    <td><button class="deleteBtn" onclick="confirmDeleteComment('${c.filename.replace(/'/g, "\\'")}', '${c.id.replace(/'/g, "\\'")}')">削除</button></td>
+                    <td data-label="日時" style="color:#6c6c82;font-size:12px;white-space:nowrap">${new Date(c.createdAt).toLocaleString("ja-JP")}</td>
+                    <td data-label=""><button class="deleteBtn" onclick="confirmDeleteComment('${c.filename.replace(/'/g, "\\'")}', '${c.id.replace(/'/g, "\\'")}')">削除</button></td>
                 </tr>
             `).join("")}</tbody>
         </table>
@@ -555,12 +643,12 @@ function renderReports(filter) {
             </tr></thead>
             <tbody>${list.map(r => `
                 <tr>
-                    <td><span style="color:#b8b8ff;font-weight:500">${escapeHtml(r.reportedBy)}</span></td>
-                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(r.videoTitle)}</td>
-                    <td><span class="badge">${reasonLabels[r.reason] || r.reason}</span></td>
-                    <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#a0a0b5;font-size:13px">${r.details ? escapeHtml(r.details) : '<span style="color:#6c6c82">—</span>'}</td>
-                    <td style="color:#6c6c82;font-size:12px;white-space:nowrap">${new Date(r.createdAt).toLocaleString("ja-JP")}</td>
-                    <td><button class="deleteBtn" onclick="confirmDismissReport('${r.id.replace(/'/g, "\\'")}')">却下</button></td>
+                    <td data-label="通報者"><span style="color:#b8b8ff;font-weight:500">${escapeHtml(r.reportedBy)}</span></td>
+                    <td data-label="動画" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(r.videoTitle)}</td>
+                    <td data-label="理由"><span class="badge">${reasonLabels[r.reason] || r.reason}</span></td>
+                    <td data-label="詳細" style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#a0a0b5;font-size:13px">${r.details ? escapeHtml(r.details) : '<span style="color:#6c6c82">—</span>'}</td>
+                    <td data-label="日時" style="color:#6c6c82;font-size:12px;white-space:nowrap">${new Date(r.createdAt).toLocaleString("ja-JP")}</td>
+                    <td data-label=""><button class="deleteBtn" onclick="confirmDismissReport('${r.id.replace(/'/g, "\\'")}')">却下</button></td>
                 </tr>
             `).join("")}</tbody>
         </table>

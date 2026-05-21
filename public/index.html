@@ -1277,6 +1277,22 @@ video{
     height:18px;
 }
 
+/* --- Tablet (max-width: 1024px) --- */
+@media(max-width:1024px){
+    #videos{
+        grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+        gap:20px;
+    }
+    #notificationDropdown{
+        right:16px;
+        width:360px;
+    }
+    #videoPage{
+        padding:20px;
+    }
+}
+
+/* --- Medium (max-width: 850px) --- */
 @media(max-width:850px){
 
     .heroTitle{
@@ -1312,6 +1328,309 @@ video{
 
     .userMenu{
         width:100%;
+    }
+
+    .hero{
+        padding:50px 20px 30px;
+    }
+    .heroSub{
+        font-size:16px;
+    }
+    .card{
+        border-radius:18px;
+    }
+    #videos{
+        padding:10px 16px 40px;
+        gap:18px;
+    }
+    #channelHeader{
+        padding:0 16px 12px;
+    }
+    #playlistHeader{
+        padding:0 16px 12px;
+    }
+    #videoPage .videoTitle{
+        font-size:20px;
+    }
+    #videoPage .videoActions button{
+        padding:6px 12px;
+        font-size:12px;
+    }
+    .tabBar{
+        padding:0 16px 16px;
+        gap:6px;
+    }
+    .tab{
+        padding:6px 14px;
+        font-size:13px;
+    }
+    .pagination{
+        padding:16px;
+        margin-top:-20px;
+    }
+    .pageBtn{
+        padding:6px 14px;
+        font-size:13px;
+    }
+    .playlistCard{
+        border-radius:18px;
+    }
+    #channelHeader #channelAvatar{
+        width:48px;
+        height:48px;
+        font-size:22px;
+    }
+    #channelName{
+        font-size:20px;
+    }
+}
+
+/* --- Small (max-width: 600px) --- */
+@media(max-width:600px){
+    .logo{
+        font-size:20px;
+    }
+    .heroTitle{
+        font-size:28px;
+    }
+    .heroSub{
+        font-size:14px;
+    }
+    .hero{
+        padding:36px 16px 24px;
+    }
+
+    #videos{
+        grid-template-columns:1fr;
+        gap:16px;
+        padding:8px 12px 32px;
+    }
+    .card{
+        border-radius:16px;
+    }
+    .cardBody{
+        padding:14px;
+    }
+    .videoName{
+        font-size:14px;
+    }
+    .videoMeta{
+        font-size:12px;
+    }
+
+    #notificationDropdown{
+        position:fixed;
+        top:0;
+        right:0;
+        left:0;
+        bottom:0;
+        width:100%;
+        max-height:100%;
+        border-radius:0;
+        border:none;
+        z-index:500;
+        display:flex;
+        flex-direction:column;
+    }
+    #notificationDropdown > div:first-child{
+        flex-shrink:0;
+    }
+    #notificationList{
+        flex:1;
+        max-height:none;
+    }
+    #notifBtnClose{
+        display:block;
+    }
+
+    .tabBar{
+        padding:0 12px 12px;
+        gap:4px;
+        overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+        scrollbar-width:none;
+        flex-wrap:nowrap;
+    }
+    .tabBar::-webkit-scrollbar{
+        display:none;
+    }
+    .tab{
+        flex-shrink:0;
+        padding:6px 12px;
+        font-size:12px;
+        white-space:nowrap;
+    }
+
+    #videoPage{
+        padding:12px;
+    }
+    #videoPage .backBtn{
+        font-size:12px;
+        padding:6px 14px;
+        margin-bottom:12px;
+    }
+    #videoPage .videoTitle{
+        font-size:18px;
+    }
+    #videoPage .videoDesc{
+        font-size:13px;
+    }
+    #videoPage .videoMeta{
+        font-size:13px;
+        gap:10px;
+    }
+    #videoPage .videoActions{
+        gap:8px;
+    }
+    #videoPage .videoActions button{
+        padding:6px 10px;
+        font-size:11px;
+    }
+    #videoPage .commentsSection h3{
+        font-size:14px;
+    }
+    #videoPage .commentForm{
+        flex-direction:column;
+        gap:8px;
+    }
+    #videoPage .commentForm .commentSubmitBtn{
+        align-self:flex-end;
+        padding:8px 16px;
+        font-size:13px;
+    }
+    #addToPlaylistDropdown{
+        position:fixed;
+        left:16px!important;
+        right:16px!important;
+        width:auto!important;
+        min-width:0;
+    }
+
+    .modal{
+        margin:16px;
+        padding:24px 20px;
+        max-width:none;
+        width:auto;
+    }
+    .modal h2{
+        font-size:20px;
+    }
+
+    .pagination{
+        gap:8px;
+    }
+    .pageInfo{
+        font-size:12px;
+        min-width:80px;
+    }
+
+    .playlistCard{
+        border-radius:14px;
+    }
+    .playlistCard .cardBody{
+        padding:12px 14px;
+    }
+    .playlistCard .playlistTitle{
+        font-size:14px;
+    }
+    .playlistCard .playlistDesc{
+        font-size:12px;
+    }
+
+    #channelHeader #channelAvatar{
+        width:40px;
+        height:40px;
+        font-size:18px;
+    }
+    #channelName{
+        font-size:18px;
+    }
+    #channelBio{
+        font-size:13px;
+    }
+    #subscribeBtn{
+        font-size:12px;
+        padding:6px 14px;
+    }
+
+    #playlistDetailTitle{
+        font-size:18px;
+    }
+    #playlistDetailDesc{
+        font-size:13px;
+    }
+
+    .userMenu .uploadBtn{
+        font-size:11px;
+        padding:6px 10px;
+    }
+    .userName{
+        font-size:13px;
+    }
+
+    #bookmarkBtn, #playlistBtn, #historyBtn{
+        font-size:12px;
+        padding:6px 12px;
+    }
+    #notificationBtn{
+        padding:6px 10px!important;
+    }
+
+    #channelHeader > div{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .commentItem{
+        padding:8px 10px;
+        font-size:12px;
+    }
+    .commentForm{
+        flex-direction:column;
+        gap:8px;
+    }
+    .commentSubmitBtn{
+        align-self:flex-end;
+    }
+    .details{
+        padding:10px;
+    }
+    #editProfileModal .modal{
+        max-width:none;
+    }
+}
+
+/* --- Very small phones (max-width: 400px) --- */
+@media(max-width:400px){
+    .heroTitle{
+        font-size:22px;
+    }
+    .heroSub{
+        font-size:13px;
+    }
+    #videos{
+        gap:12px;
+        padding:6px 10px 24px;
+    }
+    .cardBody{
+        padding:10px;
+    }
+    .videoName{
+        font-size:13px;
+    }
+    .rankBadge{
+        font-size:12px;
+        padding:3px 10px;
+    }
+    .logo{
+        font-size:18px;
+    }
+    header{
+        padding:12px 16px;
+    }
+    .modal{
+        padding:20px 16px;
+        margin:12px;
     }
 }
 
@@ -1403,7 +1722,10 @@ onclick="clearSearch()">
 <div id="notificationDropdown" style="display:none;position:fixed;top:70px;right:24px;width:380px;max-height:480px;background:#1a1a22;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;z-index:300;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06)">
         <span style="font-weight:600;font-size:15px">通知</span>
-        <button id="markAllReadBtn" class="uploadBtn secondary" style="padding:4px 12px;font-size:11px" onclick="markAllNotificationsRead()">すべて既読</button>
+        <div style="display:flex;align-items:center;gap:8px">
+            <button id="markAllReadBtn" class="uploadBtn secondary" style="padding:4px 12px;font-size:11px" onclick="markAllNotificationsRead()">すべて既読</button>
+            <button id="notifBtnClose" class="uploadBtn secondary" style="display:none;padding:2px 8px;font-size:16px;line-height:1" onclick="closeNotifications()">&times;</button>
+        </div>
     </div>
     <div id="notificationList" style="overflow-y:auto;max-height:400px">
         <div style="padding:30px 16px;text-align:center;color:#6c6c82;font-size:14px">読み込み中...</div>
@@ -3001,6 +3323,11 @@ async function markAllNotificationsRead() {
     } catch (e) {
         console.error(e);
     }
+}
+
+function closeNotifications() {
+    document.getElementById("notificationDropdown").style.display = "none";
+    notificationsOpen = false;
 }
 
 async function loadNotificationPref() {
