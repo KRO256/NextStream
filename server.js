@@ -12,11 +12,11 @@ require("dotenv").config();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json({ limit: "1gb" }));
+app.use(express.json({ limit: "10mb" }));
 
 app.use(express.urlencoded({
     extended: true,
-    limit: "1gb"
+    limit: "10mb"
 }));
 
 const sessionSecret = process.env.SESSION_SECRET;
@@ -33,6 +33,7 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
+        sameSite: "strict",
         maxAge: 24 * 60 * 60 * 1000
     }
 }));
@@ -282,8 +283,21 @@ function rateLimit({ windowMs, max, keyFn, message }) {
     };
 }
 
-app.use("/videos", express.static(uploadDir));
-app.use("/hls", express.static(hlsDir));
+function authStatic(dir) {
+    return (req, res, next) => {
+        if (!req.session || !req.session.userId) {
+            return res.status(401).json({ success: false, error: "認証が必要です" });
+        }
+        express.static(dir)(req, res, next);
+    };
+}
+
+function isValidFilename(name) {
+    return typeof name === "string" && name.length > 0 && name.length <= 255 && /^[a-zA-Z0-9._-]+$/.test(name) && !name.includes("..");
+}
+
+app.use("/videos", authStatic(uploadDir));
+app.use("/hls", authStatic(hlsDir));
 app.use("/thumbnails", express.static(thumbnailsDir));
 app.use("/avatars", express.static(avatarsDir));
 app.use(express.static("public"));
@@ -342,12 +356,19 @@ app.post("/api/register", rateLimit({
         users[username] = { password: hashedPassword, createdAt: new Date().toISOString(), admin: isAdmin || undefined };
         saveUsers(users);
 
-        req.session.userId = username;
-        if (isAdmin) req.session.isAdmin = true;
-        res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
+        req.session.regenerate(err => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
+            }
+            req.session.userId = username;
+            if (isAdmin) req.session.isAdmin = true;
+            req.session.csrfToken = crypto.randomUUID();
+            res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
+        });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -376,12 +397,19 @@ app.post("/api/login", rateLimit({
             return res.status(401).json({ success: false, error: "ユーザー名またはパスワードが間違っています" });
         }
 
-        req.session.userId = username;
-        if (user.admin) req.session.isAdmin = true;
-        res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
+        req.session.regenerate(err => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
+            }
+            req.session.userId = username;
+            if (user.admin) req.session.isAdmin = true;
+            req.session.csrfToken = crypto.randomUUID();
+            res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
+        });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -398,7 +426,7 @@ app.get("/api/me", (req, res) => {
     if (req.session.userId) {
         res.json({ success: true, user: req.session.userId, isAdmin: req.session.isAdmin || false, csrfToken: req.session.csrfToken });
     } else {
-        res.json({ success: false, user: null, isAdmin: false, csrfToken: req.session.csrfToken });
+        res.json({ success: false, user: null, isAdmin: false });
     }
 });
 
@@ -421,28 +449,69 @@ app.delete("/api/account", requireAuth, csrfProtection, async (req, res) => {
             return res.status(401).json({ success: false, error: "パスワードが間違っています" });
         }
 
-        delete users[req.session.userId];
+        const username = req.session.userId;
+        delete users[username];
         saveUsers(users);
 
         const profiles = loadProfiles();
-        if (profiles[req.session.userId]) {
-            if (profiles[req.session.userId].avatar) {
-                const avatarFile = path.join(avatarsDir, path.basename(profiles[req.session.userId].avatar));
+        if (profiles[username]) {
+            if (profiles[username].avatar) {
+                const avatarFile = path.join(avatarsDir, path.basename(profiles[username].avatar));
                 if (fs.existsSync(avatarFile)) fs.unlinkSync(avatarFile);
             }
-            delete profiles[req.session.userId];
+            delete profiles[username];
             saveProfiles(profiles);
         }
 
         const notifications = loadNotifications();
-        delete notifications[req.session.userId];
+        delete notifications[username];
         saveNotifications(notifications);
+
+        const metadata = loadMetadata();
+        const userVideos = Object.keys(metadata).filter(k => metadata[k].uploadedBy === username);
+        for (const fn of userVideos) {
+            const fp = path.join(uploadDir, fn);
+            if (fs.existsSync(fp)) fs.unlinkSync(fp);
+            const hls = path.join(hlsDir, fn);
+            if (fs.existsSync(hls)) fs.rmSync(hls, { recursive: true, force: true });
+            delete metadata[fn];
+        }
+        saveMetadata(metadata);
+
+        const comments = loadComments();
+        for (const fn of Object.keys(comments)) {
+            comments[fn] = comments[fn].filter(c => c.username !== username);
+            if (comments[fn].length === 0) delete comments[fn];
+        }
+        saveComments(comments);
+
+        const bookmarks = loadBookmarks();
+        delete bookmarks[username];
+        for (const user of Object.keys(bookmarks)) {
+            bookmarks[user] = bookmarks[user].filter(f => !userVideos.includes(f));
+        }
+        saveBookmarks(bookmarks);
+
+        const subs = loadSubscriptions();
+        delete subs[username];
+        for (const user of Object.keys(subs)) {
+            subs[user] = subs[user].filter(s => s !== username);
+        }
+        saveSubscriptions(subs);
+
+        const history = loadHistory();
+        delete history[username];
+        saveHistory(history);
+
+        const playlists = loadPlaylists();
+        const savedPlaylists = playlists.filter(p => p.username !== username);
+        savePlaylists(savedPlaylists);
 
         req.session.destroy();
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -667,9 +736,16 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
 
         console.error(err);
 
+        if (typeof dir === "string" && fs.existsSync(dir)) {
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
+        if (typeof finalPath === "string" && fs.existsSync(finalPath)) {
+            fs.unlinkSync(finalPath);
+        }
+
         res.status(500).json({
             success: false,
-            error: err.message
+            error: "サーバーエラーが発生しました"
         });
     }
 });
@@ -731,7 +807,7 @@ app.patch("/video/:filename", requireAuth, csrfProtection, (req, res) => {
 
         res.status(500).json({
             success: false,
-            error: err.message
+            error: "サーバーエラーが発生しました"
         });
     }
 });
@@ -765,7 +841,7 @@ app.post("/api/video/:filename/like", requireAuth, csrfProtection, (req, res) =>
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -789,7 +865,7 @@ app.post("/api/video/:filename/bookmark", requireAuth, csrfProtection, (req, res
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -830,7 +906,7 @@ app.get("/api/bookmarks", requireAuth, (req, res) => {
         res.json({ videos: paged, total, page, limit, totalPages });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -868,7 +944,7 @@ app.post("/api/video/:filename/progress", requireAuth, csrfProtection, (req, res
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -880,7 +956,7 @@ app.get("/api/video/:filename/progress", requireAuth, (req, res) => {
         res.json({ success: true, time: time || 0 });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -918,7 +994,7 @@ app.get("/api/history", requireAuth, (req, res) => {
         res.json({ videos, total, page, limit, totalPages });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -930,7 +1006,7 @@ app.delete("/api/history", requireAuth, csrfProtection, (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -974,7 +1050,7 @@ app.post("/api/video/:filename/report", requireAuth, csrfProtection, rateLimit({
         res.json({ success: true, report });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1013,7 +1089,7 @@ app.post("/api/channel/:username/subscribe", requireAuth, csrfProtection, (req, 
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1030,7 +1106,7 @@ app.get("/api/channel/:username/subscribers", (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1049,7 +1125,7 @@ app.get("/api/notifications", requireAuth, (req, res) => {
         res.json({ success: true, notifications: paged, total, page, limit, totalPages, unread: userNotifs.filter(n => !n.read).length });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1061,7 +1137,7 @@ app.get("/api/notifications/unread-count", requireAuth, (req, res) => {
         res.json({ success: true, unread });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1077,7 +1153,7 @@ app.post("/api/notifications/read", requireAuth, csrfProtection, (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1095,7 +1171,7 @@ app.post("/api/notifications/read/:id", requireAuth, csrfProtection, (req, res) 
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1112,7 +1188,7 @@ app.get("/api/profile/:username", (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1140,7 +1216,7 @@ app.put("/api/profile", requireAuth, csrfProtection, (req, res) => {
         res.json({ success: true, profile: { bio: profiles[req.session.userId].bio || "", avatar: profiles[req.session.userId].avatar || null } });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1171,9 +1247,9 @@ app.post("/api/profile/avatar", requireAuth, csrfProtection, (req, res) => {
                 if (err.code === "LIMIT_FILE_SIZE") {
                     return res.status(400).json({ success: false, error: "ファイルサイズは2MB以下にしてください" });
                 }
-                return res.status(400).json({ success: false, error: err.message });
+                return res.status(400).json({ success: false, error: "サーバーエラーが発生しました" });
             }
-            return res.status(400).json({ success: false, error: err.message });
+            return res.status(400).json({ success: false, error: "サーバーエラーが発生しました" });
         }
         if (!req.file) {
             return res.status(400).json({ success: false, error: "画像ファイルを選択してください" });
@@ -1205,7 +1281,7 @@ app.get("/api/settings/notifications", requireAuth, (req, res) => {
         res.json({ success: true, enabled: profile.notificationsEnabled !== false });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1221,18 +1297,21 @@ app.put("/api/settings/notifications", requireAuth, csrfProtection, (req, res) =
         res.json({ success: true, enabled: profiles[req.session.userId].notificationsEnabled });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
 app.post("/api/settings/password", requireAuth, csrfProtection, async (req, res) => {
     try {
-        const { currentPassword, newPassword } = req.body;
+        const { currentPassword, newPassword, confirmPassword } = req.body;
         if (!currentPassword || !newPassword) {
             return res.status(400).json({ success: false, error: "現在のパスワードと新しいパスワードを入力してください" });
         }
-        if (newPassword.length < 4) {
-            return res.status(400).json({ success: false, error: "新しいパスワードは4文字以上で入力してください" });
+        if (newPassword.length < 6) {
+            return res.status(400).json({ success: false, error: "新しいパスワードは6文字以上で入力してください" });
+        }
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ success: false, error: "新しいパスワードと確認用パスワードが一致しません" });
         }
         if (currentPassword === newPassword) {
             return res.status(400).json({ success: false, error: "新しいパスワードは現在のパスワードと異なるものを設定してください" });
@@ -1254,7 +1333,7 @@ app.post("/api/settings/password", requireAuth, csrfProtection, async (req, res)
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1284,7 +1363,7 @@ app.post("/api/video/:filename/comment", requireAuth, csrfProtection, rateLimit(
         }
 
         const comment = {
-            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+            id: crypto.randomUUID(),
             username: req.session.userId,
             text: text.trim(),
             createdAt: new Date().toISOString()
@@ -1296,7 +1375,7 @@ app.post("/api/video/:filename/comment", requireAuth, csrfProtection, rateLimit(
         res.json({ success: true, comment });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1307,7 +1386,7 @@ app.get("/api/video/:filename/comments", (req, res) => {
         res.json({ success: true, comments: list });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1334,7 +1413,7 @@ app.delete("/api/video/:filename/comment/:id", requireAuth, csrfProtection, (req
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1374,12 +1453,15 @@ app.post("/api/video/:filename/view", csrfProtection, (req, res) => {
         res.json({ success: true, views: video.views, periodViews });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
 app.delete("/api/video/:filename", requireAuth, csrfProtection, (req, res) => {
     try {
+        if (!isValidFilename(req.params.filename)) {
+            return res.status(400).json({ success: false, error: "無効なファイル名です" });
+        }
         const metadata = loadMetadata();
         const video = metadata[req.params.filename];
 
@@ -1446,7 +1528,7 @@ app.delete("/api/video/:filename", requireAuth, csrfProtection, (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1478,7 +1560,7 @@ app.get("/api/video/:filename", (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1575,8 +1657,11 @@ app.get("/search", (req, res) => {
 
     const results = files.filter(file => {
         const meta = metadata[file];
-        if (!meta || !meta.tags) return false;
-        return meta.tags.some(tag => tag.toLowerCase().includes(q));
+        if (!meta) return false;
+        const qLower = q.toLowerCase();
+        return (meta.title && meta.title.toLowerCase().includes(qLower)) ||
+               (meta.description && meta.description.toLowerCase().includes(qLower)) ||
+               (meta.tags && meta.tags.some(tag => tag.toLowerCase().includes(qLower)));
     }).map(file => {
         const meta = metadata[file] || {};
         return {
@@ -1668,7 +1753,7 @@ app.get("/api/ranking", (req, res) => {
         res.json({ videos: paged, total, page, limit, totalPages });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1676,7 +1761,14 @@ app.get("/admin", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-app.get("/api/admin/users", requireAuth, requireAdmin, (req, res) => {
+const adminRateLimit = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    keyFn: req => "admin:" + req.session.userId,
+    message: "リクエストが多すぎます"
+});
+
+app.get("/api/admin/users", requireAuth, requireAdmin, adminRateLimit, (req, res) => {
     try {
         const users = loadUsers();
         const metadata = loadMetadata();
@@ -1700,11 +1792,11 @@ app.get("/api/admin/users", requireAuth, requireAdmin, (req, res) => {
         res.json({ success: true, users: userList, total: userList.length });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
-app.get("/api/admin/videos", requireAuth, requireAdmin, (req, res) => {
+app.get("/api/admin/videos", requireAuth, requireAdmin, adminRateLimit, (req, res) => {
     try {
         const metadata = loadMetadata();
         const files = readVideoFiles();
@@ -1727,11 +1819,11 @@ app.get("/api/admin/videos", requireAuth, requireAdmin, (req, res) => {
         res.json({ success: true, videos: videoList, total: videoList.length });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
-app.get("/api/admin/comments", requireAuth, requireAdmin, (req, res) => {
+app.get("/api/admin/comments", requireAuth, requireAdmin, adminRateLimit, (req, res) => {
     try {
         const comments = loadComments();
         const metadata = loadMetadata();
@@ -1754,11 +1846,11 @@ app.get("/api/admin/comments", requireAuth, requireAdmin, (req, res) => {
         res.json({ success: true, comments: allComments, total: allComments.length });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
-app.delete("/api/admin/user/:username", requireAuth, requireAdmin, csrfProtection, (req, res) => {
+app.delete("/api/admin/user/:username", requireAuth, requireAdmin, adminRateLimit, csrfProtection, (req, res) => {
     try {
         const targetUser = req.params.username;
         if (targetUser === req.session.userId) {
@@ -1858,12 +1950,15 @@ app.delete("/api/admin/user/:username", requireAuth, requireAdmin, csrfProtectio
         res.json({ success: true, deletedVideos: userVideos.length });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
-app.delete("/api/admin/video/:filename", requireAuth, requireAdmin, csrfProtection, (req, res) => {
+app.delete("/api/admin/video/:filename", requireAuth, requireAdmin, adminRateLimit, csrfProtection, (req, res) => {
     try {
+        if (!isValidFilename(req.params.filename)) {
+            return res.status(400).json({ success: false, error: "無効なファイル名です" });
+        }
         const metadata = loadMetadata();
         const filename = req.params.filename;
 
@@ -1911,11 +2006,11 @@ app.delete("/api/admin/video/:filename", requireAuth, requireAdmin, csrfProtecti
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
-app.delete("/api/admin/video/:filename/comment/:id", requireAuth, requireAdmin, csrfProtection, (req, res) => {
+app.delete("/api/admin/video/:filename/comment/:id", requireAuth, requireAdmin, adminRateLimit, csrfProtection, (req, res) => {
     try {
         const comments = loadComments();
         const list = comments[req.params.filename];
@@ -1936,22 +2031,22 @@ app.delete("/api/admin/video/:filename/comment/:id", requireAuth, requireAdmin, 
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
-app.get("/api/admin/reports", requireAuth, requireAdmin, (req, res) => {
+app.get("/api/admin/reports", requireAuth, requireAdmin, adminRateLimit, (req, res) => {
     try {
         const reports = loadReports();
         const list = [...reports].reverse();
         res.json({ success: true, reports: list, total: list.length });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
-app.delete("/api/admin/report/:id", requireAuth, requireAdmin, csrfProtection, (req, res) => {
+app.delete("/api/admin/report/:id", requireAuth, requireAdmin, adminRateLimit, csrfProtection, (req, res) => {
     try {
         const reports = loadReports();
         const idx = reports.findIndex(r => r.id === req.params.id);
@@ -1964,7 +2059,7 @@ app.delete("/api/admin/report/:id", requireAuth, requireAdmin, csrfProtection, (
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -1999,7 +2094,7 @@ app.post("/api/playlists", requireAuth, csrfProtection, (req, res) => {
         res.json({ success: true, playlist: playlists[id] });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -2012,7 +2107,7 @@ app.get("/api/playlists", requireAuth, (req, res) => {
         res.json({ success: true, playlists: userPlaylists });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -2062,7 +2157,7 @@ app.get("/api/playlists/:id", (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -2101,7 +2196,7 @@ app.patch("/api/playlists/:id", requireAuth, csrfProtection, (req, res) => {
         res.json({ success: true, playlist });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -2120,7 +2215,7 @@ app.delete("/api/playlists/:id", requireAuth, csrfProtection, (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -2154,7 +2249,7 @@ app.post("/api/playlists/:id/videos", requireAuth, csrfProtection, (req, res) =>
         res.json({ success: true, playlist });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -2179,7 +2274,7 @@ app.delete("/api/playlists/:id/videos/:filename", requireAuth, csrfProtection, (
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
@@ -2210,8 +2305,12 @@ app.get("/api/playlists/public/:username", (req, res) => {
         res.json({ success: true, playlists: result });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
+});
+
+app.get("/watch", (req, res) => {
+    res.redirect("/");
 });
 
 app.get("/watch/*", (req, res) => {
