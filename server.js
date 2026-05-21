@@ -495,6 +495,24 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
 
         if (uploadedChunks.length == totalChunks) {
 
+            if (title && title.length > 100) {
+                return res.status(400).json({ success: false, error: "タイトルは100文字以内で入力してください" });
+            }
+
+            if (description && description.length > 2000) {
+                return res.status(400).json({ success: false, error: "説明文は2000文字以内で入力してください" });
+            }
+
+            const tagList = tags
+                ? tags.split(",").map(t => t.trim()).filter(Boolean)
+                : [];
+            if (tagList.some(t => t.length > 20)) {
+                return res.status(400).json({ success: false, error: "各タグは20文字以内で入力してください" });
+            }
+            if (tagList.length > 10) {
+                return res.status(400).json({ success: false, error: "タグは最大10個までです" });
+            }
+
             const safeName =
                 Date.now() +
                 "_" +
@@ -524,23 +542,6 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
 
                 const metadata = loadMetadata();
 
-                if (title && title.length > 100) {
-                    return res.status(400).json({ success: false, error: "タイトルは100文字以内で入力してください" });
-                }
-
-                if (description && description.length > 2000) {
-                    return res.status(400).json({ success: false, error: "説明文は2000文字以内で入力してください" });
-                }
-
-                const tagList = tags
-                    ? tags.split(",").map(t => t.trim()).filter(Boolean)
-                    : [];
-                if (tagList.some(t => t.length > 20)) {
-                    return res.status(400).json({ success: false, error: "各タグは20文字以内で入力してください" });
-                }
-                if (tagList.length > 10) {
-                    return res.status(400).json({ success: false, error: "タグは最大10個までです" });
-                }
                 let duration = 0;
                 try {
                     const probe = spawnSync("ffprobe", [
@@ -569,6 +570,8 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                 saveMetadata(metadata);
 
                 console.log("UPLOAD COMPLETE:", safeName);
+
+                res.json({ success: true });
 
                 const videoHlsDir = path.join(hlsDir, safeName);
                 if (!fs.existsSync(videoHlsDir)) {
@@ -656,11 +659,9 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                     }
                 });
             });
+        } else {
+            res.json({ success: true });
         }
-
-        res.json({
-            success: true
-        });
 
     } catch (err) {
 

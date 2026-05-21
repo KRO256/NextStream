@@ -2347,6 +2347,8 @@ document.addEventListener("keydown", function(e) {
         closeDeleteModal();
         closeEditProfileModal();
         closeReportModal();
+        closePlaylistModal();
+        closeAddToPlaylistDropdown();
     }
     if (e.key === "Enter") {
         if (document.getElementById("authModal").classList.contains("active")) {
@@ -2541,7 +2543,7 @@ function startEditTags(el) {
 
         if (tagList.length) {
             el.innerHTML = tagList.map(t =>
-                `<span class="tag" data-tag="${t}">${t}</span>`
+                `<span class="tag" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</span>`
             ).join("");
         } else {
             el.innerHTML =
@@ -2562,7 +2564,7 @@ function startEditTags(el) {
                 const currentTags = current.join(", ");
                 if (currentTags) {
                     el.innerHTML = current.map(t =>
-                        `<span class="tag" data-tag="${t}">${t}</span>`
+                        `<span class="tag" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</span>`
                     ).join("");
                 } else {
                     el.innerHTML =
@@ -2642,7 +2644,7 @@ function renderVideoList(videos, emptyMessage, showRank) {
         const tagsHtml = (video.tags || []).length
             ? `<div class="videoTags" data-filename="${video.name}">${
                 video.tags.map(t =>
-                    `<span class="tag" data-tag="${t}">${t}</span>`
+                    `<span class="tag" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</span>`
                 ).join("")
             }</div>`
             : `<div class="videoTags" data-filename="${video.name}"><span class="tag addTag">+ タグ追加</span></div>`;
@@ -4094,7 +4096,7 @@ function renderVideoListForPlaylist(videos, playlistId) {
 
         const tagsHtml = (video.tags || []).length
             ? '<div class="videoTags" data-filename="' + video.name + '">' +
-              video.tags.map(t => '<span class="tag" data-tag="' + t + '">' + t + '</span>').join("") + '</div>'
+              video.tags.map(t => '<span class="tag" data-tag="' + escapeHtml(t) + '">' + escapeHtml(t) + '</span>').join("") + '</div>'
             : '<div class="videoTags" data-filename="' + video.name + '"><span class="tag addTag">+ タグ追加</span></div>';
 
         const durHtml = video.duration ? '<span class="durationBadge">' + formatDuration(video.duration) + '</span>' : "";
@@ -4444,13 +4446,6 @@ async function showChannelPlaylists(username) {
         console.error(e);
     }
 }
-
-document.addEventListener("keydown", function(e) {
-    if (e.key === "Escape") {
-        closePlaylistModal();
-        closeAddToPlaylistDropdown();
-    }
-});
 
 // --- Keyboard shortcuts ---
 function setupKeyboardShortcuts() {
