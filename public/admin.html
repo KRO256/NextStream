@@ -424,7 +424,7 @@ function renderVideos(filter) {
                     <td data-label="再生回数">${v.views.toLocaleString()}</td>
                     <td data-label="いいね">${v.likes.toLocaleString()}</td>
                     <td data-label="コメント">${v.commentCount}</td>
-                    <td data-label=""><button class="deleteBtn" onclick="confirmDeleteVideo('${v.name.replace(/'/g, "\\'")}')">削除</button></td>
+                    <td data-label=""><button class="deleteBtn" onclick="confirmDeleteVideo('${escapeJs(v.name)}')">削除</button></td>
                 </tr>
             `).join("")}</tbody>
         </table>
@@ -465,7 +465,7 @@ function renderUsers(filter) {
                     <td data-label="登録日" style="color:#8c8ca3;font-size:13px">${new Date(u.createdAt).toLocaleDateString("ja-JP")}</td>
                     <td data-label="動画数">${u.videoCount}</td>
                     <td data-label="コメント数">${u.commentCount}</td>
-                    <td data-label="">${!isSelf && !u.admin ? `<button class="deleteBtn" onclick="confirmDeleteUser('${u.username.replace(/'/g, "\\'")}')">削除</button>` : ''}</td>
+                    <td data-label="">${!isSelf && !u.admin ? `<button class="deleteBtn" onclick="confirmDeleteUser('${escapeJs(u.username)}')">削除</button>` : ''}</td>
                 </tr>
             `}).join("")}</tbody>
         </table>
@@ -503,7 +503,7 @@ function renderComments(filter) {
                         ${escapeHtml(c.videoTitle)}
                     </td>
                     <td data-label="日時" style="color:#6c6c82;font-size:12px;white-space:nowrap">${new Date(c.createdAt).toLocaleString("ja-JP")}</td>
-                    <td data-label=""><button class="deleteBtn" onclick="confirmDeleteComment('${c.filename.replace(/'/g, "\\'")}', '${c.id.replace(/'/g, "\\'")}')">削除</button></td>
+                    <td data-label=""><button class="deleteBtn" onclick="confirmDeleteComment('${escapeJs(c.filename)}', '${escapeJs(c.id)}')">削除</button></td>
                 </tr>
             `).join("")}</tbody>
         </table>
@@ -648,7 +648,7 @@ function renderReports(filter) {
                     <td data-label="理由"><span class="badge">${reasonLabels[r.reason] || r.reason}</span></td>
                     <td data-label="詳細" style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#a0a0b5;font-size:13px">${r.details ? escapeHtml(r.details) : '<span style="color:#6c6c82">—</span>'}</td>
                     <td data-label="日時" style="color:#6c6c82;font-size:12px;white-space:nowrap">${new Date(r.createdAt).toLocaleString("ja-JP")}</td>
-                    <td data-label=""><button class="deleteBtn" onclick="confirmDismissReport('${r.id.replace(/'/g, "\\'")}')">却下</button></td>
+                    <td data-label=""><button class="deleteBtn" onclick="confirmDismissReport('${escapeJs(r.id)}')">却下</button></td>
                 </tr>
             `).join("")}</tbody>
         </table>
@@ -677,6 +677,9 @@ function escapeHtml(str) {
     const d = document.createElement("div");
     d.textContent = str;
     return d.innerHTML;
+}
+function escapeJs(str) {
+    return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "\\\"").replace(/</g, "\\x3C").replace(/>/g, "\\x3E");
 }
 
 init();

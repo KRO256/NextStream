@@ -34,6 +34,7 @@ app.use(session({
     cookie: {
         httpOnly: true,
         sameSite: "strict",
+        secure: process.env.NODE_ENV === "production",
         maxAge: 24 * 60 * 60 * 1000
     }
 }));
@@ -352,7 +353,7 @@ app.post("/api/register", rateLimit({
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const isAdmin = adminUsername && username === adminUsername;
+        const isAdmin = adminUsername && username === adminUsername && Object.keys(users).length === 0;
         users[username] = { password: hashedPassword, createdAt: new Date().toISOString(), admin: isAdmin || undefined };
         saveUsers(users);
 
@@ -418,8 +419,10 @@ app.get("/api/csrf-token", (req, res) => {
 });
 
 app.post("/api/logout", csrfProtection, (req, res) => {
-    req.session.destroy();
-    res.json({ success: true });
+    req.session.destroy(err => {
+        if (err) console.error(err);
+        res.json({ success: true });
+    });
 });
 
 app.get("/api/me", (req, res) => {
@@ -504,8 +507,14 @@ app.delete("/api/account", requireAuth, csrfProtection, async (req, res) => {
         saveHistory(history);
 
         const playlists = loadPlaylists();
-        const savedPlaylists = playlists.filter(p => p.username !== username);
-        savePlaylists(savedPlaylists);
+        for (const [pid, pl] of Object.entries(playlists)) {
+            if (pl.username === username) {
+                delete playlists[pid];
+            } else {
+                pl.videoFilenames = pl.videoFilenames.filter(f => !userVideos.includes(f));
+            }
+        }
+        savePlaylists(playlists);
 
         req.session.destroy();
         res.json({ success: true });
@@ -551,19 +560,42 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
             license
         } = req.body;
 
+        if (typeof fileId !== "string" || !/^[a-zA-Z0-9_-]+$/.test(fileId)) {
+            return res.status(400).json({ success: false, error: "無効なファイルIDです" });
+        }
+
+        const parsedChunkIndex = parseInt(chunkIndex, 10);
+        if (!Number.isInteger(parsedChunkIndex) || parsedChunkIndex < 0) {
+            return res.status(400).json({ success: false, error: "無効なチャンクインデックスです" });
+        }
+
+        const parsedTotalChunks = parseInt(totalChunks, 10);
+        if (!Number.isInteger(parsedTotalChunks) || parsedTotalChunks < 1 || parsedTotalChunks > 200) {
+            return res.status(400).json({ success: false, error: "無効なチャンク総数です" });
+        }
+
         const dir = path.join(chunksDir, fileId);
 
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir);
         }
 
-        const chunkPath = path.join(dir, String(chunkIndex));
+        const chunkPath = path.join(dir, String(parsedChunkIndex));
 
-        fs.renameSync(req.file.path, chunkPath);
+        try {
+            fs.renameSync(req.file.path, chunkPath);
+        } catch (e) {
+            if (e.code === "EXDEV") {
+                fs.copyFileSync(req.file.path, chunkPath);
+                fs.unlinkSync(req.file.path);
+            } else {
+                throw e;
+            }
+        }
 
         const uploadedChunks = fs.readdirSync(dir);
 
-        if (uploadedChunks.length == totalChunks) {
+        if (uploadedChunks.length === parsedTotalChunks) {
 
             if (title && title.length > 100) {
                 return res.status(400).json({ success: false, error: "タイトルは100文字以内で入力してください" });
@@ -589,13 +621,18 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
             const safeName =
                 Date.now() +
                 "_" +
-                fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+                (fileName || "video").replace(/[^a-zA-Z0-9._-]/g, "_");
 
             const finalPath = path.join(uploadDir, safeName);
 
+            let writeError = null;
             const writeStream = fs.createWriteStream(finalPath);
+            writeStream.on("error", err => {
+                writeError = err;
+                console.error("writeStream error:", err);
+            });
 
-            for (let i = 0; i < totalChunks; i++) {
+            for (let i = 0; i < parsedTotalChunks; i++) {
 
                 const chunkFile = path.join(dir, String(i));
 
@@ -607,6 +644,11 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
             writeStream.end();
 
             writeStream.on("finish", () => {
+                if (writeError) {
+                    fs.rmSync(dir, { recursive: true, force: true });
+                    if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath);
+                    return res.status(500).json({ success: false, error: "ファイル書き込みエラーが発生しました" });
+                }
 
                 fs.rmSync(dir, {
                     recursive: true,
@@ -671,11 +713,17 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                     path.join(videoHlsDir, "%v.m3u8")
                 ]);
 
+                const ffmpegTimeout = setTimeout(() => {
+                    console.error("ffmpeg HLS timeout for", safeName);
+                    ffmpeg.kill("SIGKILL");
+                }, 5 * 60 * 1000);
+
                 ffmpeg.stderr.on("data", data => {
                     console.log("ffmpeg:", data.toString());
                 });
 
                 ffmpeg.on("close", code => {
+                    clearTimeout(ffmpegTimeout);
                     if (code === 0) {
                         const meta = loadMetadata();
                         if (meta[safeName]) {
@@ -721,7 +769,13 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                             "-q:v", "2",
                             thumbPath
                         ]);
+                        const thumbTimeout = setTimeout(() => {
+                            console.error("ffmpeg thumbnail timeout for", safeName);
+                            ffmpegThumb.kill("SIGKILL");
+                        }, 60 * 1000);
+
                         ffmpegThumb.on("close", thumbCode => {
+                            clearTimeout(thumbTimeout);
                             if (thumbCode === 0) {
                                 console.log("THUMBNAIL READY:", safeName);
                             } else {
@@ -769,6 +823,10 @@ app.patch("/video/:filename", requireAuth, csrfProtection, (req, res) => {
                 return res.status(403).json({ success: false, error: "自分の動画のみ編集できます" });
             }
 
+            if (!isValidFilename(req.params.filename)) {
+                return res.status(400).json({ success: false, error: "無効なファイル名です" });
+            }
+
             if (title !== undefined) {
                 if (title.length > 100) {
                     return res.status(400).json({ success: false, error: "タイトルは100文字以内で入力してください" });
@@ -784,9 +842,8 @@ app.patch("/video/:filename", requireAuth, csrfProtection, (req, res) => {
             }
 
             if (tags !== undefined) {
-                const tagList = Array.isArray(tags)
-                    ? tags
-                    : tags.split(",").map(t => t.trim()).filter(Boolean);
+                const tagList = (Array.isArray(tags) ? tags : tags.split(",").map(t => t.trim()).filter(Boolean))
+                    .filter(t => typeof t === "string");
                 if (tagList.some(t => t.length > 20)) {
                     return res.status(400).json({ success: false, error: "各タグは20文字以内で入力してください" });
                 }
@@ -1282,7 +1339,7 @@ app.post("/api/profile/avatar", requireAuth, csrfProtection, (req, res) => {
             res.json({ success: true, avatar: avatarUrl });
         } catch (e) {
             console.error(e);
-            res.status(500).json({ success: false, error: e.message });
+            res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
         }
     });
 });
@@ -1430,7 +1487,12 @@ app.delete("/api/video/:filename/comment/:id", requireAuth, csrfProtection, (req
     }
 });
 
-app.post("/api/video/:filename/view", csrfProtection, (req, res) => {
+app.post("/api/video/:filename/view", requireAuth, rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    keyFn: req => "view:" + req.session.userId + ":" + req.params.filename,
+    message: "視聴数の更新は1分間に10回までです"
+}), csrfProtection, (req, res) => {
     try {
         const metadata = loadMetadata();
         const video = metadata[req.params.filename];

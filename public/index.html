@@ -2168,6 +2168,9 @@ function escapeHtml(str) {
     div.textContent = str;
     return div.innerHTML;
 }
+function escapeJs(str) {
+    return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "\\\"").replace(/</g, "\\x3C").replace(/>/g, "\\x3E");
+}
 
 function formatDuration(seconds) {
     if (!seconds || seconds <= 0) return "";
@@ -2543,7 +2546,7 @@ function startEditTags(el) {
         }
 
         await csrfFetch(
-            "/video/" +
+            "/api/video/" +
             encodeURIComponent(filename),
             {
                 method:"PATCH",
@@ -2648,7 +2651,7 @@ function renderVideoList(videos, emptyMessage, showRank) {
     container.innerHTML = "";
 
     if (videos.length === 0) {
-        container.innerHTML = `<div class="empty">${emptyMessage}</div>`;
+        container.innerHTML = `<div class="empty">${escapeHtml(emptyMessage)}</div>`;
         updatePagination();
         return;
     }
@@ -2658,12 +2661,12 @@ function renderVideoList(videos, emptyMessage, showRank) {
         div.className = "card";
 
         const tagsHtml = (video.tags || []).length
-            ? `<div class="videoTags" data-filename="${video.name}">${
+                    ? `<div class="videoTags" data-filename="${escapeHtml(video.name)}">${
                 video.tags.map(t =>
                     `<span class="tag" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</span>`
                 ).join("")
             }</div>`
-            : `<div class="videoTags" data-filename="${video.name}"><span class="tag addTag">+ タグ追加</span></div>`;
+            : `<div class="videoTags" data-filename="${escapeHtml(video.name)}"><span class="tag addTag">+ タグ追加</span></div>`;
 
         const rankHtml = showRank
             ? `<div class="rankBadge${index === 0 ? ' gold' : index === 1 ? ' silver' : index === 2 ? ' bronze' : ''}">#${index + 1}</div>`
@@ -2681,36 +2684,36 @@ function renderVideoList(videos, emptyMessage, showRank) {
             <video
             controls
             preload="metadata"
-            data-url="${video.url}"
-            ${video.thumbnailUrl ? `poster="${video.thumbnailUrl}"` : ""}>
+            data-url="${escapeHtml(video.url)}"
+            ${video.thumbnailUrl ? `poster="${escapeHtml(video.thumbnailUrl)}"` : ""}>
             </video>
             ${durHtml}
         </div>
         <div class="cardBody">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-                <div class="videoName" data-filename="${video.name}" style="flex:1">
+                <div class="videoName" data-filename="${escapeHtml(video.name)}" style="flex:1">
                     ${escapeHtml(video.title)}
                 </div>
-                <button class="shareBtn" data-filename="${video.name}" onclick="shareVideo(this)" title="共有">🔗</button>
-                ${currentUser === video.uploadedBy ? `<button class="deleteVideoBtn" data-filename="${video.name}" onclick="deleteVideo(this)">🗑 削除</button>` : ""}
+                <button class="shareBtn" data-filename="${escapeHtml(video.name)}" onclick="shareVideo(this)" title="共有">🔗</button>
+                ${currentUser === video.uploadedBy ? `<button class="deleteVideoBtn" data-filename="${escapeHtml(video.name)}" onclick="deleteVideo(this)">🗑 削除</button>` : ""}
             </div>
             ${descHtml}
             ${tagsHtml}
             <div class="videoMeta">
                 ${video.uploadedBy ? `<span class="channelLink">${escapeHtml(video.uploadedBy)}</span>` : "NextStream"} ·
                 <span class="viewCount ${showRank ? 'rankingViews' : ''}">${video.views || 0} 回視聴</span> ·
-                <button class="likeBtn${video.likedByUser ? ' liked' : ''}" data-filename="${video.name}" onclick="toggleLike(this)">
+                <button class="likeBtn${video.likedByUser ? ' liked' : ''}" data-filename="${escapeHtml(video.name)}" onclick="toggleLike(this)">
                     <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                     <span class="likeCount">${video.likes || 0}</span>
                 </button>
-                <button class="bookmarkBtn${video.bookmarkedByUser ? ' bookmarked' : ''}" data-filename="${video.name}" onclick="toggleBookmark(this)">
+                <button class="bookmarkBtn${video.bookmarkedByUser ? ' bookmarked' : ''}" data-filename="${escapeHtml(video.name)}" onclick="toggleBookmark(this)">
                     <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
                 </button>
-                <button class="addToPlaylistBtn" data-filename="${video.name}" onclick="event.stopPropagation();openAddToPlaylistDropdown(this,'${video.name}')" title="プレイリストに追加">
+                <button class="addToPlaylistBtn" data-filename="${escapeHtml(video.name)}" onclick="event.stopPropagation();openAddToPlaylistDropdown(this,'${escapeJs(video.name)}')" title="プレイリストに追加">
                     <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
                 </button>
             </div>
-            <details class="commentsSection" data-filename="${video.name}">
+            <details class="commentsSection" data-filename="${escapeHtml(video.name)}">
                 <summary>コメントを見る</summary>
                 <div class="commentList"></div>
                 <div class="commentForm">
@@ -2768,18 +2771,20 @@ function renderVideoList(videos, emptyMessage, showRank) {
 
         const videoEl = div.querySelector("video");
         const videoUrl = videoEl.dataset.url;
-        if (videoUrl.endsWith(".m3u8")) {
-            if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
-                videoEl.src = videoUrl;
-            } else if (window.Hls && Hls.isSupported()) {
-                const hls = new Hls();
-                hls.loadSource(videoUrl);
-                hls.attachMedia(videoEl);
+        if (videoUrl && (videoUrl.startsWith("/") || videoUrl.startsWith("http://") || videoUrl.startsWith("https://") || videoUrl.startsWith("blob:"))) {
+            if (videoUrl.endsWith(".m3u8")) {
+                if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
+                    videoEl.src = videoUrl;
+                } else if (window.Hls && window.Hls.isSupported()) {
+                    const hls = new window.Hls();
+                    hls.loadSource(videoUrl);
+                    hls.attachMedia(videoEl);
+                } else {
+                    videoEl.src = videoUrl;
+                }
             } else {
                 videoEl.src = videoUrl;
             }
-        } else {
-            videoEl.src = videoUrl;
         }
         let viewCounted = false;
         videoEl.addEventListener("play", async function() {
@@ -3019,7 +3024,7 @@ function renderComments(listEl, comments, filename) {
         <div class="commentItem">
             <div class="commentAuthor">
                 <span>${escapeHtml(c.username)}</span>
-                ${currentUser === c.username ? `<button class="commentDeleteBtn" onclick="deleteComment('${filename}', '${c.id}', this)">削除</button>` : ""}
+                ${currentUser === c.username ? `<button class="commentDeleteBtn" onclick="deleteComment('${escapeJs(filename)}', '${escapeJs(c.id)}', this)">削除</button>` : ""}
             </div>
             <div class="commentText">${escapeHtml(c.text)}</div>
         </div>
@@ -3066,7 +3071,7 @@ async function postComment(btn) {
                 <div class="commentItem">
                     <div class="commentAuthor">
                         <span>${escapeHtml(data.comment.username)}</span>
-                        <button class="commentDeleteBtn" onclick="deleteComment('${filename}', '${data.comment.id}', this)">削除</button>
+                        <button class="commentDeleteBtn" onclick="deleteComment('${escapeJs(filename)}', '${escapeJs(data.comment.id)}', this)">削除</button>
                     </div>
                     <div class="commentText">${escapeHtml(data.comment.text)}</div>
                 </div>
@@ -3285,17 +3290,17 @@ function renderHistoryList(videos) {
         const progressPercent = v.duration > 0 ? Math.min(100, Math.round((v.progress / v.duration) * 100)) : 0;
         const hasProgress = v.progress > 0 && v.duration > 0 && progressPercent > 0 && progressPercent < 95;
         return `
-            <div class="card" onclick="navigateToVideo('${v.name.replace(/'/g, "\\'")}')">
+            <div class="card" onclick="navigateToVideo('${escapeJs(v.name)}')">
                 <div class="videoWrap">
-                    ${v.thumbnailUrl ? `<img src="${v.thumbnailUrl}" style="width:100%;height:100%;object-fit:cover" loading="lazy">` : `<video src="${v.url}#t=0.1" preload="metadata"></video>`}
+                    ${v.thumbnailUrl ? `<img src="${escapeHtml(v.thumbnailUrl)}" style="width:100%;height:100%;object-fit:cover" loading="lazy">` : `<video src="${escapeHtml(v.url)}#t=0.1" preload="metadata"></video>`}
                     ${v.duration > 0 ? `<span class="durationBadge">${formatDuration(v.duration)}</span>` : ""}
                     ${hasProgress ? `<div style="position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,0.15)"><div style="width:${progressPercent}%;height:100%;background:linear-gradient(90deg,#7c4dff,#00d4ff);border-radius:0 2px 2px 0"></div></div>` : ""}
                 </div>
                 <div class="cardBody">
-                    <div class="videoName" onclick="event.stopPropagation();navigateToVideo('${v.name.replace(/'/g, "\\'")}')">${escapeHtml(v.title)}</div>
+                    <div class="videoName" onclick="event.stopPropagation();navigateToVideo('${escapeJs(v.name)}')">${escapeHtml(v.title)}</div>
                     <div class="cardDesc">${escapeHtml(v.description)}</div>
                     <div class="videoMeta">
-                        投稿者: <span class="channelLink" onclick="event.stopPropagation();showChannel('${escapeHtml(v.uploadedBy || '')}')">${escapeHtml(v.uploadedBy || "削除済み")}</span>
+                        投稿者: <span class="channelLink" onclick="event.stopPropagation();showChannel('${escapeJs(v.uploadedBy || '')}')">${escapeHtml(v.uploadedBy || "削除済み")}</span>
                         ${v.views !== undefined ? ` · ${v.views.toLocaleString()} 回再生` : ""}
                         ${hasProgress ? ` · ${progressPercent}% 再生済み` : ""}
                     </div>
@@ -3367,7 +3372,7 @@ async function fetchNotifications() {
                 listEl.innerHTML = data.notifications.map(n => {
                     const time = formatNotifTime(n.createdAt);
                     const isUnread = !n.read;
-                    return '<div class="notifItem' + (isUnread ? ' unread' : '') + '" data-id="' + n.id + '" onclick="openNotifVideo(\'' + n.videoFilename + '\', \'' + n.id + '\')">' +
+                    return '<div class="notifItem' + (isUnread ? ' unread' : '') + '" data-id="' + escapeHtml(n.id) + '" onclick="openNotifVideo(\'' + escapeJs(n.videoFilename) + '\', \'' + escapeJs(n.id) + '\')">' +
                         '<div class="notifIcon">🎵</div>' +
                         '<div class="notifBody">' +
                             '<div class="notifText"><strong>' + escapeHtml(n.from) + '</strong> が新しい動画をアップロードしました<br><span style="color:#b8b8ff">' + escapeHtml(n.videoTitle) + '</span></div>' +
@@ -3513,10 +3518,10 @@ function setupHls(videoEl, url) {
         if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
             videoEl.src = url;
             return null;
-        } else if (window.Hls && Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(url);
-            hls.attachMedia(videoEl);
+            } else if (window.Hls && window.Hls.isSupported()) {
+                const hls = new window.Hls();
+                hls.loadSource(url);
+                hls.attachMedia(videoEl);
             return hls;
         } else {
             videoEl.src = url;
@@ -3644,7 +3649,7 @@ function renderVideoDetail(video) {
     const licKey = video.license || "all_rights_reserved";
     const licLabel = licenseLabels[licKey] || licKey;
     const licLink = licenseLinks[licKey];
-    document.getElementById("videoLicense").innerHTML = "ライセンス: " + (licLink ? '<a href="' + licLink + '" target="_blank" rel="noopener">' + licLabel + '</a>' : licLabel);
+    document.getElementById("videoLicense").innerHTML = "ライセンス: " + (licLink ? '<a href="' + escapeHtml(licLink) + '" target="_blank" rel="noopener">' + escapeHtml(licLabel) + '</a>' : escapeHtml(licLabel));
 
     const durStr = video.duration ? ' · <span class="duration">' + formatDuration(video.duration) + '</span>' : "";
 
@@ -3671,8 +3676,8 @@ function renderVideoDetail(video) {
         '<button class="bookmarkBtn' + (video.bookmarkedByUser ? ' bookmarked' : '') + '" onclick="toggleVideoBookmark()">' +
             bookmarkIcon + '</button>' +
         '<button onclick="shareVideoFromPage()" title="共有">🔗 共有</button>' +
-        '<button onclick="openAddToPlaylistDropdown(this,\'' + video.name + '\')" title="プレイリストに追加">' + plusIcon + ' 追加</button>' +
-        '<button onclick="openReportModal(\'' + video.name + '\')" title="通報" style="color:#8c8ca3;font-size:13px">🚩 通報</button>';
+        '<button onclick="openAddToPlaylistDropdown(this,\'' + escapeJs(video.name) + '\')" title="プレイリストに追加">' + plusIcon + ' 追加</button>' +
+        '<button onclick="openReportModal(\'' + escapeJs(video.name) + '\')" title="通報" style="color:#8c8ca3;font-size:13px">🚩 通報</button>';
     if (currentUser === video.uploadedBy) {
         actionsHtml += '<button onclick="editVideoTitle()" title="タイトルを編集">✏️ 編集</button>';
         actionsHtml += '<button class="deleteVideoBtn" onclick="deleteVideoFromPage()" style="background:rgba(229,57,53,0.15);border:1px solid rgba(255,255,255,0.08);color:#ef5350">🗑 削除</button>';
@@ -3699,7 +3704,7 @@ async function loadVideoPageComments(filename) {
                         '<div class="commentAuthor">' +
                             '<span>' + escapeHtml(c.username) + '</span>' +
                             (currentUser === c.username
-                                ? '<button class="commentDeleteBtn" onclick="deleteVideoPageComment(\'' + filename + "', '" + c.id + "', this)\">削除</button>"
+                                ? '<button class="commentDeleteBtn" onclick="deleteVideoPageComment(\'' + escapeJs(filename) + "', '" + escapeJs(c.id) + "', this)\">削除</button>"
                                 : "") +
                         '</div>' +
                         '<div class="commentText">' + escapeHtml(c.text) + '</div>' +
@@ -3739,7 +3744,7 @@ async function postVideoPageComment() {
                 '<div class="commentItem">' +
                     '<div class="commentAuthor">' +
                         '<span>' + escapeHtml(data.comment.username) + '</span>' +
-                        '<button class="commentDeleteBtn" onclick="deleteVideoPageComment(\'' + videoDetailData.name + "', '" + data.comment.id + "', this)\">削除</button>" +
+                        '<button class="commentDeleteBtn" onclick="deleteVideoPageComment(\'' + escapeJs(videoDetailData.name) + "', '" + escapeJs(data.comment.id) + "', this)\">削除</button>" +
                     '</div>' +
                     '<div class="commentText">' + escapeHtml(data.comment.text) + '</div>' +
                 '</div>'
@@ -3823,7 +3828,7 @@ function editVideoTitle() {
     async function save() {
         const val = input.value.trim() || current;
         if (val.length > 100) { alert("タイトルは100文字以内で入力してください"); input.focus(); return; }
-        await csrfFetch("/video/" + encodeURIComponent(videoDetailData.name), {
+        await csrfFetch("/api/video/" + encodeURIComponent(videoDetailData.name), {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ title: val })
@@ -4040,7 +4045,7 @@ function renderPlaylistList(playlists) {
         const privacyLabel = isPrivate ? '🔒 非公開' : '🌐 公開';
         const videoCount = pl.videoFilenames ? pl.videoFilenames.length : 0;
 
-        html += '<div class="playlistCard" onclick="showPlaylistDetail(\'' + pl.id + '\')">' +
+        html += '<div class="playlistCard" onclick="showPlaylistDetail(\'' + escapeJs(pl.id) + '\')">' +
             '<div class="thumbWrap">' +
             '<div class="thumbPlaceholder">📋</div>' +
             '<div class="thumbOverlay">' +
@@ -4052,8 +4057,8 @@ function renderPlaylistList(playlists) {
             (pl.description ? '<div class="playlistDesc">' + escapeHtml(pl.description) + '</div>' : '') +
             '<div class="playlistMeta">作成: ' + formatNotifTime(pl.createdAt) + '</div>' +
             '<div class="playlistActions" onclick="event.stopPropagation()">' +
-            '<button class="editBtn" onclick="openEditPlaylistModal(\'' + pl.id + '\')">✏ 編集</button>' +
-            '<button class="deleteBtn" onclick="deletePlaylist(\'' + pl.id + '\')">🗑 削除</button>' +
+            '<button class="editBtn" onclick="openEditPlaylistModal(\'' + escapeJs(pl.id) + '\')">✏ 編集</button>' +
+            '<button class="deleteBtn" onclick="deletePlaylist(\'' + escapeJs(pl.id) + '\')">🗑 削除</button>' +
             '</div></div></div>';
     });
 
@@ -4137,36 +4142,36 @@ function renderVideoListForPlaylist(videos, playlistId) {
         div.className = "card";
 
         const tagsHtml = (video.tags || []).length
-            ? '<div class="videoTags" data-filename="' + video.name + '">' +
+            ? '<div class="videoTags" data-filename="' + escapeHtml(video.name) + '">' +
               video.tags.map(t => '<span class="tag" data-tag="' + escapeHtml(t) + '">' + escapeHtml(t) + '</span>').join("") + '</div>'
-            : '<div class="videoTags" data-filename="' + video.name + '"><span class="tag addTag">+ タグ追加</span></div>';
+            : '<div class="videoTags" data-filename="' + escapeHtml(video.name) + '"><span class="tag addTag">+ タグ追加</span></div>';
 
         const durHtml = video.duration ? '<span class="durationBadge">' + formatDuration(video.duration) + '</span>' : "";
 
         div.innerHTML =
             '<div class="videoWrap">' +
-            '<video controls preload="metadata" data-url="' + video.url + '"' +
-            (video.thumbnailUrl ? ' poster="' + video.thumbnailUrl + '"' : '') + '>' +
+            '<video controls preload="metadata" data-url="' + escapeHtml(video.url) + '"' +
+            (video.thumbnailUrl ? ' poster="' + escapeHtml(video.thumbnailUrl) + '"' : '') + '>' +
             '</video>' + durHtml + '</div>' +
             '<div class="cardBody">' +
             '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">' +
-            '<div class="videoName" data-filename="' + video.name + '" style="flex:1">' + escapeHtml(video.title) + '</div>' +
-            '<button class="shareBtn" data-filename="' + video.name + '" onclick="shareVideo(this)" title="共有">🔗</button>' +
-            (currentUser === video.uploadedBy ? '<button class="deleteVideoBtn" data-filename="' + video.name + '" onclick="deleteVideo(this)">🗑 削除</button>' : "") +
+            '<div class="videoName" data-filename="' + escapeHtml(video.name) + '" style="flex:1">' + escapeHtml(video.title) + '</div>' +
+            '<button class="shareBtn" data-filename="' + escapeHtml(video.name) + '" onclick="shareVideo(this)" title="共有">🔗</button>' +
+            (currentUser === video.uploadedBy ? '<button class="deleteVideoBtn" data-filename="' + escapeHtml(video.name) + '" onclick="deleteVideo(this)">🗑 削除</button>' : "") +
             '</div>' +
             (video.description ? '<div class="cardDesc">' + escapeHtml(video.description) + '</div>' : "") +
             tagsHtml +
             '<div class="videoMeta">' +
             (video.uploadedBy ? '<span class="channelLink">' + escapeHtml(video.uploadedBy) + '</span>' : "NextStream") + ' · ' +
             '<span class="viewCount">' + (video.views || 0) + ' 回視聴</span> · ' +
-            '<button class="likeBtn' + (video.likedByUser ? ' liked' : '') + '" data-filename="' + video.name + '" onclick="toggleLike(this)">' +
+            '<button class="likeBtn' + (video.likedByUser ? ' liked' : '') + '" data-filename="' + escapeHtml(video.name) + '" onclick="toggleLike(this)">' +
             '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>' +
             '<span class="likeCount">' + (video.likes || 0) + '</span></button>' +
-            '<button class="bookmarkBtn' + (video.bookmarkedByUser ? ' bookmarked' : '') + '" data-filename="' + video.name + '" onclick="toggleBookmark(this)">' +
+            '<button class="bookmarkBtn' + (video.bookmarkedByUser ? ' bookmarked' : '') + '" data-filename="' + escapeHtml(video.name) + '" onclick="toggleBookmark(this)">' +
             '<svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></button>' +
-            '<button class="addToPlaylistBtn" data-filename="' + video.name + '" onclick="event.stopPropagation();openAddToPlaylistDropdown(this,\'' + video.name + '\')" title="プレイリストに追加">' +
+            '<button class="addToPlaylistBtn" data-filename="' + escapeHtml(video.name) + '" onclick="event.stopPropagation();openAddToPlaylistDropdown(this,\'' + escapeJs(video.name) + '\')" title="プレイリストに追加">' +
             '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>' +
-            (currentUser ? '<button class="deleteVideoBtn" style="background:rgba(229,57,53,0.15);color:#ef5350;border:1px solid rgba(229,57,53,0.3)" data-playlist="' + playlistId + '" data-filename="' + video.name + '" onclick="removeFromPlaylist(this)">プレイリストから削除</button>' : "") +
+            (currentUser ? '<button class="deleteVideoBtn" style="background:rgba(229,57,53,0.15);color:#ef5350;border:1px solid rgba(229,57,53,0.3)" data-playlist="' + escapeHtml(playlistId) + '" data-filename="' + escapeHtml(video.name) + '" onclick="removeFromPlaylist(this)">プレイリストから削除</button>' : "") +
             '</div></div>';
 
         const titleEl = div.querySelector(".videoName");
@@ -4192,18 +4197,20 @@ function renderVideoListForPlaylist(videos, playlistId) {
 
         const videoEl = div.querySelector("video");
         const videoUrl = videoEl.dataset.url;
-        if (videoUrl.endsWith(".m3u8")) {
-            if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
-                videoEl.src = videoUrl;
-            } else if (window.Hls && Hls.isSupported()) {
-                const hls = new Hls();
-                hls.loadSource(videoUrl);
-                hls.attachMedia(videoEl);
+        if (videoUrl && (videoUrl.startsWith("/") || videoUrl.startsWith("http://") || videoUrl.startsWith("https://") || videoUrl.startsWith("blob:"))) {
+            if (videoUrl.endsWith(".m3u8")) {
+                if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
+                    videoEl.src = videoUrl;
+                } else if (window.Hls && window.Hls.isSupported()) {
+                    const hls = new window.Hls();
+                    hls.loadSource(videoUrl);
+                    hls.attachMedia(videoEl);
+                } else {
+                    videoEl.src = videoUrl;
+                }
             } else {
                 videoEl.src = videoUrl;
             }
-        } else {
-            videoEl.src = videoUrl;
         }
         let viewCounted = false;
         videoEl.addEventListener("play", async function() {
@@ -4398,7 +4405,7 @@ function openAddToPlaylistDropdown(btn, filename) {
             } else {
                 playlists.forEach(pl => {
                     const has = (pl.videoFilenames || []).includes(filename);
-                    html += '<div class="playlistOption" onclick="toggleVideoInPlaylist(\'' + pl.id + "','" + filename + "'," + (!has) + ',this)">' +
+                    html += '<div class="playlistOption" onclick="toggleVideoInPlaylist(\'' + escapeJs(pl.id) + "','" + escapeJs(filename) + "'," + (!has) + ',this)">' +
                         '<span class="plTitle">' + escapeHtml(pl.title) + '</span>' +
                         (has ? '<span class="plCheck">✓</span>' : '<span style="color:#6c6c82;font-size:12px">追加</span>') +
                         '</div>';
@@ -4446,7 +4453,7 @@ async function toggleVideoInPlaylist(playlistId, filename, add, el) {
             });
         }
         const filename2 = document.getElementById("addToPlaylistDropdown").dataset.filename;
-        openAddToPlaylistDropdown(document.querySelector('.addToPlaylistBtn[data-filename="' + filename2 + '"]') || document.querySelector('[onclick*="' + filename2 + '"]'), filename2);
+        openAddToPlaylistDropdown(document.querySelector('.addToPlaylistBtn[data-filename="' + escapeHtml(filename2) + '"]') || document.querySelector('[onclick*="' + escapeHtml(filename2) + '"]'), filename2);
     } catch (e) {
         console.error(e);
         alert("エラーが発生しました");
@@ -4463,10 +4470,10 @@ async function showChannelPlaylists(username) {
             let html = '<div style="margin-top:24px;margin-bottom:12px"><h3 style="margin:0;font-size:18px;font-weight:600;color:#d0d0e0">公開プレイリスト</h3></div>' +
                 '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px">';
             data.playlists.forEach(pl => {
-                html += '<div class="playlistCard" onclick="showPlaylistDetail(\'' + pl.id + '\')">' +
+                html += '<div class="playlistCard" onclick="showPlaylistDetail(\'' + escapeJs(pl.id) + '\')">' +
                     '<div class="thumbWrap">' +
                     (pl.firstVideoThumbnail
-                        ? '<img src="' + pl.firstVideoThumbnail + '" alt="">'
+                        ? '<img src="' + escapeHtml(pl.firstVideoThumbnail) + '" alt="">'
                         : '<div class="thumbPlaceholder">📋</div>') +
                     '<div class="thumbOverlay"><span>' + pl.videoCount + ' 件の動画</span>' +
                     '<span class="privacyBadge public">🌐 公開</span></div></div>' +

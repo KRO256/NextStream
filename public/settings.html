@@ -229,7 +229,7 @@ async function changePassword() {
         const res = await csrfFetch("/api/settings/password", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ currentPassword, newPassword })
+            body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
         });
         const data = await res.json();
         if (data.success) {
