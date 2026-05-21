@@ -563,7 +563,8 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                     uploadedBy: req.session.userId,
                     likes: [],
                     views: 0,
-                    duration: duration
+                    duration: duration,
+                    qualities: ["360p", "480p", "720p"]
                 };
                 saveMetadata(metadata);
 
@@ -576,16 +577,21 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
 
                 const ffmpeg = spawn("ffmpeg", [
                     "-i", finalPath,
-                    "-c:v", "libx264",
+                    "-filter_complex",
+                    "[0:v]split=3[v1][v2][v3];[v1]scale=-2:360[v1out];[v2]scale=-2:480[v2out];[v3]scale=-2:720[v3out]",
                     "-preset", "fast",
-                    "-crf", "23",
-                    "-c:a", "aac",
-                    "-b:a", "128k",
+                    "-map", "[v1out]", "-c:v:0", "libx264", "-b:v:0", "800k", "-maxrate:v:0", "856k", "-bufsize:v:0", "1200k",
+                    "-map", "[v2out]", "-c:v:1", "libx264", "-b:v:1", "1400k", "-maxrate:v:1", "1498k", "-bufsize:v:1", "2100k",
+                    "-map", "[v3out]", "-c:v:2", "libx264", "-b:v:2", "2800k", "-maxrate:v:2", "2996k", "-bufsize:v:2", "4200k",
+                    "-map", "a:0", "-c:a", "aac", "-b:a", "128k",
+                    "-f", "hls",
                     "-hls_time", "10",
                     "-hls_playlist_type", "vod",
                     "-hls_segment_filename",
-                    path.join(videoHlsDir, "segment_%03d.ts"),
-                    path.join(videoHlsDir, "index.m3u8")
+                    path.join(videoHlsDir, "segment_%v_%03d.ts"),
+                    "-master_pl_name", "index.m3u8",
+                    "-var_stream_map", "v:0,a:0 v:1,a:0 v:2,a:0",
+                    path.join(videoHlsDir, "%v.m3u8")
                 ]);
 
                 ffmpeg.stderr.on("data", data => {

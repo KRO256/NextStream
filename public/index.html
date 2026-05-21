@@ -970,6 +970,70 @@ video{
     background:rgba(255,215,0,0.2);
 }
 
+.qualitySelector{
+    position:relative;
+    display:inline-block;
+}
+.qualityBtn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.08);
+    color:#a0a0b5;
+    padding:8px 16px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:500;
+    cursor:pointer;
+    transition:0.2s;
+    font-family:"Inter",sans-serif;
+}
+.qualityBtn:hover{
+    background:rgba(124,77,255,0.15);
+    border-color:rgba(124,77,255,0.3);
+    color:white;
+}
+.qualityDropdown{
+    position:absolute;
+    bottom:100%;
+    left:50%;
+    transform:translateX(-50%);
+    background:#1a1a22;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:12px;
+    overflow:hidden;
+    z-index:100;
+    box-shadow:0 -10px 30px rgba(0,0,0,0.4);
+    min-width:140px;
+    display:none;
+    margin-bottom:8px;
+}
+.qualityDropdown.active{
+    display:block;
+}
+.qualityOption{
+    padding:8px 16px;
+    cursor:pointer;
+    font-size:13px;
+    color:#d0d0e0;
+    transition:0.15s;
+    text-align:center;
+    border-bottom:1px solid rgba(255,255,255,0.03);
+    font-family:"Inter",sans-serif;
+    white-space:nowrap;
+}
+.qualityOption:last-child{
+    border-bottom:none;
+}
+.qualityOption:hover{
+    background:rgba(124,77,255,0.12);
+}
+.qualityOption.active{
+    color:#7c4dff;
+    font-weight:600;
+}
+
 #videoPage .videoActions button svg{
     width:18px;
     height:18px;
@@ -3419,6 +3483,7 @@ function startNotificationPolling() {
 // --- Video detail page & routing ---
 
 let videoDetailData = null;
+let currentHlsInstance = null;
 
 function getFilenameFromPath() {
     const match = window.location.pathname.match(/\/watch\/(.+)/);
@@ -3429,15 +3494,19 @@ function setupHls(videoEl, url) {
     if (url.endsWith(".m3u8")) {
         if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
             videoEl.src = url;
+            return null;
         } else if (window.Hls && Hls.isSupported()) {
             const hls = new Hls();
             hls.loadSource(url);
             hls.attachMedia(videoEl);
+            return hls;
         } else {
             videoEl.src = url;
+            return null;
         }
     } else {
         videoEl.src = url;
+        return null;
     }
 }
 
@@ -3492,7 +3561,7 @@ function renderVideoDetail(video) {
 
     const videoEl = document.getElementById("videoPlayer");
     if (video.thumbnailUrl) videoEl.poster = video.thumbnailUrl;
-    setupHls(videoEl, video.url);
+    currentHlsInstance = setupHls(videoEl, video.url);
 
     const descEl = document.getElementById("videoDescription");
     if (video.description) {
@@ -3567,6 +3636,9 @@ function renderVideoDetail(video) {
     document.getElementById("videoActions").innerHTML = actionsHtml;
 
     loadVideoPageComments(video.name);
+    if (currentHlsInstance) {
+        setupQualitySelector();
+    }
 }
 
 async function loadVideoPageComments(filename) {
@@ -3753,6 +3825,68 @@ function shareVideoFromPage() {
     });
 }
 
+// --- Quality selector ---
+function setupQualitySelector() {
+    const hls = currentHlsInstance;
+    if (!hls) return;
+    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+        const levels = hls.levels;
+        if (!levels || levels.length <= 1) return;
+        const actionsEl = document.getElementById("videoActions");
+        if (!actionsEl) return;
+        const existing = document.getElementById("qualitySelector");
+        if (existing) existing.remove();
+        const sel = document.createElement("div");
+        sel.className = "qualitySelector";
+        sel.id = "qualitySelector";
+        let opts = '<div class="qualityOption active" data-level="-1" onclick="setQuality(-1)">Auto</div>';
+        levels.forEach(function(lv, i) {
+            const label = lv.height ? lv.height + "p" : "Quality " + i;
+            opts += '<div class="qualityOption" data-level="' + i + '" onclick="setQuality(' + i + ')">' + label + "</div>";
+        });
+        sel.innerHTML =
+            '<button class="qualityBtn" onclick="event.stopPropagation();toggleQualityDropdown()">' +
+                '<span style="font-size:14px">⚙</span> <span id="qualityLabel">Auto</span>' +
+            '</button>' +
+            '<div class="qualityDropdown" id="qualityDropdown">' + opts + "</div>";
+        actionsEl.appendChild(sel);
+        hls.on(Hls.Events.LEVEL_SWITCHED, function(e, data) {
+            updateQualityLabel(data.level);
+        });
+    });
+}
+function updateQualityLabel(level) {
+    const label = document.getElementById("qualityLabel");
+    const hls = currentHlsInstance;
+    if (!label || !hls) return;
+    if (level === -1 || !hls.levels[level]) {
+        label.textContent = "Auto";
+    } else {
+        const lv = hls.levels[level];
+        label.textContent = lv.height ? lv.height + "p" : "Level " + level;
+    }
+    document.querySelectorAll("#qualityDropdown .qualityOption").forEach(function(el) {
+        el.classList.toggle("active", parseInt(el.dataset.level) === level);
+    });
+}
+function toggleQualityDropdown() {
+    const dd = document.getElementById("qualityDropdown");
+    if (dd) dd.classList.toggle("active");
+}
+function setQuality(level) {
+    const hls = currentHlsInstance;
+    if (hls) hls.currentLevel = level;
+    const dd = document.getElementById("qualityDropdown");
+    if (dd) dd.classList.remove("active");
+}
+document.addEventListener("click", function(e) {
+    const sel = document.getElementById("qualitySelector");
+    const dd = document.getElementById("qualityDropdown");
+    if (dd && dd.classList.contains("active") && sel && !sel.contains(e.target)) {
+        dd.classList.remove("active");
+    }
+});
+
 // --- Playback progress ---
 let progressInterval = null;
 
@@ -3789,6 +3923,12 @@ function stopProgressSaving() {
         clearInterval(progressInterval);
         progressInterval = null;
     }
+    if (currentHlsInstance) {
+        currentHlsInstance.destroy();
+        currentHlsInstance = null;
+    }
+    const qs = document.getElementById("qualitySelector");
+    if (qs) qs.remove();
 }
 
 // --- Playlist state ---
