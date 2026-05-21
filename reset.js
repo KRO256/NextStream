@@ -11,7 +11,9 @@ const dataFiles = [
     "progress.json",
     "profiles.json",
     "notifications.json",
-    "playlists.json"
+    "playlists.json",
+    "history.json",
+    "reports.json"
 ];
 
 const dirsToClean = [

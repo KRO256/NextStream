@@ -1358,6 +1358,16 @@ style="display:none;position:relative;padding:8px 14px">
 
 </button>
 
+<button
+  id="historyBtn"
+  class="uploadBtn secondary"
+  onclick="currentPage=1;showHistory()"
+  style="display:none">
+
+  🕐 履歴
+
+</button>
+
 <input
 type="text"
 id="searchInput"
@@ -1646,6 +1656,40 @@ onclick="deleteAccount()">
 
 </div>
 
+<div class="modalOverlay" id="reportModal">
+
+<div class="modal" style="max-width:450px">
+
+<h2>動画を通報</h2>
+
+<p style="color:#a0a0b5;font-size:14px;margin:0 0 16px">
+不適切な内容を報告してください。管理者が確認し、対応します。
+</p>
+
+<select id="reportReason" class="titleInput" style="width:100%;min-width:0;margin-bottom:12px;appearance:auto;cursor:pointer">
+    <option value="">通報理由を選択</option>
+    <option value="spam">スパム・宣伝</option>
+    <option value="inappropriate">不適切な内容</option>
+    <option value="copyright">著作権侵害</option>
+    <option value="harassment">嫌がらせ・迷惑行為</option>
+    <option value="other">その他</option>
+</select>
+
+<textarea id="reportDetails" class="titleInput" style="resize:vertical;min-height:80px;width:100%;min-width:0;font-family:Inter,sans-serif" maxlength="1000" placeholder="詳細（任意、1000文字以内）"></textarea>
+<div style="text-align:right;font-size:11px;color:#6c6c82;margin-top:4px"><span id="reportCharCount">0</span>/1000</div>
+
+<div id="reportError" style="color:#e53935;font-size:13px;margin-top:8px;display:none"></div>
+<div id="reportSuccess" style="color:#4caf50;font-size:13px;margin-top:8px;display:none">通報しました。管理者が確認します。</div>
+
+<div class="actions" style="margin-top:16px">
+    <button class="uploadBtn secondary" onclick="closeReportModal()">キャンセル</button>
+    <button class="uploadBtn" onclick="submitReport()">送信</button>
+</div>
+
+</div>
+
+</div>
+
 <script>
 
 let currentUser = null;
@@ -1687,10 +1731,12 @@ function renderAuthArea() {
     const bookmarkBtn = document.getElementById("bookmarkBtn");
     const notifBtn = document.getElementById("notificationBtn");
     const playlistBtn = document.getElementById("playlistBtn");
+    const historyBtn = document.getElementById("historyBtn");
     if (currentUser) {
         bookmarkBtn.style.display = "";
         notifBtn.style.display = "";
         playlistBtn.style.display = "";
+        historyBtn.style.display = "";
         area.innerHTML = `
             <a href="/upload.html" class="uploadBtn">＋ アップロード</a>
             <div class="userMenu">
@@ -1708,6 +1754,7 @@ function renderAuthArea() {
         bookmarkBtn.style.display = "none";
         notifBtn.style.display = "none";
         playlistBtn.style.display = "none";
+        historyBtn.style.display = "none";
         area.innerHTML = `
             <button class="uploadBtn" onclick="openAuthModal()">ログイン</button>
         `;
@@ -1851,16 +1898,83 @@ async function deleteAccount() {
     }
 }
 
+let reportFilename = null;
+
+function openReportModal(filename) {
+    if (!currentUser) {
+        openAuthModal();
+        return;
+    }
+    reportFilename = filename;
+    document.getElementById("reportReason").value = "";
+    document.getElementById("reportDetails").value = "";
+    document.getElementById("reportError").style.display = "none";
+    document.getElementById("reportSuccess").style.display = "none";
+    document.getElementById("reportModal").classList.add("active");
+}
+
+function closeReportModal() {
+    document.getElementById("reportModal").classList.remove("active");
+    reportFilename = null;
+}
+
+async function submitReport() {
+    const reason = document.getElementById("reportReason").value;
+    const details = document.getElementById("reportDetails").value.trim();
+    const errorEl = document.getElementById("reportError");
+    const successEl = document.getElementById("reportSuccess");
+
+    errorEl.style.display = "none";
+    successEl.style.display = "none";
+
+    if (!reason) {
+        errorEl.textContent = "通報理由を選択してください";
+        errorEl.style.display = "block";
+        return;
+    }
+
+    try {
+        const res = await csrfFetch("/api/video/" + encodeURIComponent(reportFilename) + "/report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason, details })
+        });
+        const data = await res.json();
+        if (data.success) {
+            successEl.style.display = "block";
+            document.getElementById("reportReason").value = "";
+            document.getElementById("reportDetails").value = "";
+            setTimeout(closeReportModal, 2000);
+        } else {
+            errorEl.textContent = data.error || "エラーが発生しました";
+            errorEl.style.display = "block";
+        }
+    } catch (e) {
+        errorEl.textContent = "通信エラーが発生しました";
+        errorEl.style.display = "block";
+    }
+}
+
 document.addEventListener("keydown", function(e) {
     if (e.key === "Escape") {
         closeAuthModal();
         closeDeleteModal();
         closeEditProfileModal();
+        closeReportModal();
     }
     if (e.key === "Enter") {
         if (document.getElementById("authModal").classList.contains("active")) {
             submitAuth();
         }
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    const reportDetails = document.getElementById("reportDetails");
+    if (reportDetails) {
+        reportDetails.addEventListener("input", function() {
+            document.getElementById("reportCharCount").textContent = this.value.length;
+        });
     }
 });
 
@@ -2344,6 +2458,9 @@ async function goToPage(page) {
         case 'bookmarks':
             await showBookmarks();
             break;
+        case 'history':
+            await showHistory();
+            break;
         case 'playlist-list':
             await showPlaylistList();
             break;
@@ -2717,6 +2834,96 @@ async function showBookmarks() {
     }
 }
 
+async function showHistory() {
+    if (!currentUser) {
+        openAuthModal();
+        return;
+    }
+    stopProgressSaving();
+    document.getElementById("videoPage").classList.remove("active");
+    currentView = 'history';
+    document.getElementById("searchBtn").style.display = "";
+    document.getElementById("clearSearchBtn").style.display = "none";
+    document.getElementById("searchInput").value = "";
+    document.getElementById("channelHeader").style.display = "none";
+    document.getElementById("playlistHeader").style.display = "none";
+    currentChannel = null;
+    currentPeriod = null;
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelector(".hero").style.display = "none";
+    document.getElementById("tabBar").style.display = "";
+    document.getElementById("videos").style.display = "";
+
+    try {
+        const res = await fetch(`/api/history?page=${currentPage}&limit=30`);
+        const data = await res.json();
+        currentPage = data.page;
+        totalPages = data.totalPages;
+        renderHistoryList(data.videos);
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function renderHistoryList(videos) {
+    const container = document.getElementById("videos");
+    if (!videos || videos.length === 0) {
+        container.innerHTML = `<div class="empty">
+            <div style="font-size:48px;margin-bottom:16px;opacity:0.3">🕐</div>
+            視聴履歴はまだありません<br>
+            <button class="uploadBtn secondary" style="margin-top:16px" onclick="showAllVideos()">動画を見る</button>
+        </div>`;
+        if (totalPages > 0) document.querySelector(".pagination")?.remove();
+        return;
+    }
+
+    let html = videos.map(v => {
+        const progressPercent = v.duration > 0 ? Math.min(100, Math.round((v.progress / v.duration) * 100)) : 0;
+        const hasProgress = v.progress > 0 && v.duration > 0 && progressPercent > 0 && progressPercent < 95;
+        return `
+            <div class="card" onclick="openVideoPage('${v.name.replace(/'/g, "\\'")}')">
+                <div class="videoWrap">
+                    ${v.thumbnailUrl ? `<img src="${v.thumbnailUrl}" style="width:100%;height:100%;object-fit:cover" loading="lazy">` : `<video src="${v.url}#t=0.1" preload="metadata"></video>`}
+                    ${v.duration > 0 ? `<span class="durationBadge">${formatDuration(v.duration)}</span>` : ""}
+                    ${hasProgress ? `<div style="position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,0.15)"><div style="width:${progressPercent}%;height:100%;background:linear-gradient(90deg,#7c4dff,#00d4ff);border-radius:0 2px 2px 0"></div></div>` : ""}
+                </div>
+                <div class="cardBody">
+                    <div class="videoName" onclick="event.stopPropagation();openVideoPage('${v.name.replace(/'/g, "\\'")}')">${escapeHtml(v.title)}</div>
+                    <div class="cardDesc">${escapeHtml(v.description)}</div>
+                    <div class="videoMeta">
+                        投稿者: <span class="channelLink" onclick="event.stopPropagation();showChannel('${escapeHtml(v.uploadedBy || '')}')">${escapeHtml(v.uploadedBy || "削除済み")}</span>
+                        ${v.views !== undefined ? ` · ${v.views.toLocaleString()} 回再生` : ""}
+                        ${hasProgress ? ` · ${progressPercent}% 再生済み` : ""}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join("");
+
+    if (currentUser) {
+        html += `<div style="padding:10px 24px;text-align:center">
+            <button class="uploadBtn danger" onclick="clearHistory()">履歴をすべて削除</button>
+        </div>`;
+    }
+
+    container.innerHTML = html;
+    renderPagination();
+}
+
+async function clearHistory() {
+    if (!confirm("視聴履歴をすべて削除しますか？")) return;
+    try {
+        const res = await csrfFetch("/api/history", { method: "DELETE" });
+        const data = await res.json();
+        if (data.success) {
+            currentPage = 1;
+            showHistory();
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
 // --- Notifications ---
 
 let notificationsOpen = false;
@@ -3024,7 +3231,8 @@ function renderVideoDetail(video) {
         '<button class="bookmarkBtn' + (video.bookmarkedByUser ? ' bookmarked' : '') + '" onclick="toggleVideoBookmark()">' +
             bookmarkIcon + '</button>' +
         '<button onclick="shareVideoFromPage()" title="共有">🔗 共有</button>' +
-        '<button onclick="openAddToPlaylistDropdown(this,\'' + video.name + '\')" title="プレイリストに追加">' + plusIcon + ' 追加</button>';
+        '<button onclick="openAddToPlaylistDropdown(this,\'' + video.name + '\')" title="プレイリストに追加">' + plusIcon + ' 追加</button>' +
+        '<button onclick="openReportModal(\'' + video.name + '\')" title="通報" style="color:#8c8ca3;font-size:13px">🚩 通報</button>';
     if (currentUser === video.uploadedBy) {
         actionsHtml += '<button onclick="editVideoTitle()" title="タイトルを編集">✏️ 編集</button>';
         actionsHtml += '<button class="deleteVideoBtn" onclick="deleteVideoFromPage()" style="background:rgba(229,57,53,0.15);border:1px solid rgba(255,255,255,0.08);color:#ef5350">🗑 削除</button>';

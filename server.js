@@ -85,6 +85,8 @@ const profilesPath = path.join(__dirname, "profiles.json");
 const avatarsDir = path.join(uploadDir, "avatars");
 const notificationsPath = path.join(__dirname, "notifications.json");
 const playlistsPath = path.join(__dirname, "playlists.json");
+const historyPath = path.join(__dirname, "history.json");
+const reportsPath = path.join(__dirname, "reports.json");
 
 [uploadDir, hlsDir, tempDir, chunksDir, thumbnailsDir, avatarsDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
@@ -211,6 +213,30 @@ function loadPlaylists() {
 
 function savePlaylists(data) {
     fs.writeFileSync(playlistsPath, JSON.stringify(data, null, 2));
+}
+
+function loadHistory() {
+    try {
+        return JSON.parse(fs.readFileSync(historyPath, "utf8"));
+    } catch {
+        return {};
+    }
+}
+
+function saveHistory(data) {
+    fs.writeFileSync(historyPath, JSON.stringify(data, null, 2));
+}
+
+function loadReports() {
+    try {
+        return JSON.parse(fs.readFileSync(reportsPath, "utf8"));
+    } catch {
+        return [];
+    }
+}
+
+function saveReports(data) {
+    fs.writeFileSync(reportsPath, JSON.stringify(data, null, 2));
 }
 
 function requireAuth(req, res, next) {
@@ -812,6 +838,26 @@ app.post("/api/video/:filename/progress", requireAuth, csrfProtection, (req, res
         if (!progress[user]) progress[user] = {};
         progress[user][req.params.filename] = time;
         saveProgress(progress);
+
+        const metadata = loadMetadata();
+        const meta = metadata[req.params.filename];
+        const history = loadHistory();
+        if (!history[user]) history[user] = [];
+        const existingIdx = history[user].findIndex(h => h.filename === req.params.filename);
+        const entry = {
+            filename: req.params.filename,
+            title: meta?.title || req.params.filename,
+            watchedAt: Date.now(),
+            progress: time,
+            duration: meta?.duration || 0
+        };
+        if (existingIdx !== -1) {
+            history[user][existingIdx] = entry;
+        } else {
+            history[user].push(entry);
+        }
+        saveHistory(history);
+
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -825,6 +871,100 @@ app.get("/api/video/:filename/progress", requireAuth, (req, res) => {
         const userData = progress[req.session.userId];
         const time = userData ? userData[req.params.filename] : null;
         res.json({ success: true, time: time || 0 });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/history", requireAuth, (req, res) => {
+    try {
+        const history = loadHistory();
+        const userHistory = history[req.session.userId] || [];
+        userHistory.sort((a, b) => b.watchedAt - a.watchedAt);
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = Math.min(parseInt(req.query.limit) || 30, 100);
+        const start = (page - 1) * limit;
+        const total = userHistory.length;
+        const totalPages = Math.ceil(total / limit);
+        const paged = userHistory.slice(start, start + limit);
+
+        const metadata = loadMetadata();
+        const videos = paged.map(h => {
+            const meta = metadata[h.filename] || {};
+            return {
+                name: h.filename,
+                url: getVideoUrl(h.filename, meta),
+                title: meta.title || h.filename,
+                description: meta.description || "",
+                tags: meta.tags || [],
+                uploadedBy: meta.uploadedBy || null,
+                likes: meta.likes?.length || 0,
+                views: meta.views || 0,
+                thumbnailUrl: getVideoThumbnailUrl(h.filename),
+                progress: h.progress || 0,
+                duration: meta.duration || 0
+            };
+        });
+
+        res.json({ videos, total, page, limit, totalPages });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.delete("/api/history", requireAuth, csrfProtection, (req, res) => {
+    try {
+        const history = loadHistory();
+        delete history[req.session.userId];
+        saveHistory(history);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post("/api/video/:filename/report", requireAuth, csrfProtection, rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 3,
+    keyFn: req => "report:" + req.session.userId,
+    message: "通報は1時間に3回までです"
+}), (req, res) => {
+    try {
+        const { reason, details } = req.body;
+        if (!reason || !reason.trim()) {
+            return res.status(400).json({ success: false, error: "通報理由を選択してください" });
+        }
+        const validReasons = ["spam", "inappropriate", "copyright", "harassment", "other"];
+        if (!validReasons.includes(reason)) {
+            return res.status(400).json({ success: false, error: "無効な通報理由です" });
+        }
+        if (details && details.length > 1000) {
+            return res.status(400).json({ success: false, error: "詳細は1000文字以内で入力してください" });
+        }
+
+        const metadata = loadMetadata();
+        if (!metadata[req.params.filename]) {
+            return res.status(404).json({ success: false, error: "Video not found" });
+        }
+
+        const reports = loadReports();
+        const report = {
+            id: crypto.randomUUID(),
+            filename: req.params.filename,
+            videoTitle: metadata[req.params.filename]?.title || req.params.filename,
+            reportedBy: req.session.userId,
+            reason,
+            details: (details || "").trim(),
+            createdAt: new Date().toISOString()
+        };
+        reports.push(report);
+        saveReports(reports);
+
+        res.json({ success: true, report });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: err.message });
@@ -1283,6 +1423,19 @@ app.delete("/api/video/:filename", requireAuth, csrfProtection, (req, res) => {
         }
         savePlaylists(playlists);
 
+        const history = loadHistory();
+        for (const user of Object.keys(history)) {
+            history[user] = history[user].filter(h => h.filename !== req.params.filename);
+            if (history[user].length === 0) delete history[user];
+        }
+        saveHistory(history);
+
+        const reports = loadReports();
+        const remainingReports = reports.filter(r => r.filename !== req.params.filename);
+        if (remainingReports.length !== reports.length) {
+            saveReports(remainingReports);
+        }
+
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -1677,6 +1830,20 @@ app.delete("/api/admin/user/:username", requireAuth, requireAdmin, csrfProtectio
         }
         savePlaylists(playlists);
 
+        const history = loadHistory();
+        delete history[targetUser];
+        for (const user of Object.keys(history)) {
+            history[user] = history[user].filter(h => !userVideos.includes(h.filename));
+            if (history[user].length === 0) delete history[user];
+        }
+        saveHistory(history);
+
+        const reports = loadReports();
+        const filteredReports = reports.filter(r => r.reportedBy !== targetUser && !userVideos.includes(r.filename));
+        if (filteredReports.length !== reports.length) {
+            saveReports(filteredReports);
+        }
+
         delete users[targetUser];
         saveUsers(users);
 
@@ -1720,6 +1887,19 @@ app.delete("/api/admin/video/:filename", requireAuth, requireAdmin, csrfProtecti
         }
         saveBookmarks(bookmarks);
 
+        const history = loadHistory();
+        for (const user of Object.keys(history)) {
+            history[user] = history[user].filter(h => h.filename !== filename);
+            if (history[user].length === 0) delete history[user];
+        }
+        saveHistory(history);
+
+        const reports = loadReports();
+        const remainingReports = reports.filter(r => r.filename !== filename);
+        if (remainingReports.length !== reports.length) {
+            saveReports(remainingReports);
+        }
+
         console.log(`[ADMIN] ${req.session.userId} deleted video ${filename}`);
         res.json({ success: true });
     } catch (err) {
@@ -1746,6 +1926,34 @@ app.delete("/api/admin/video/:filename/comment/:id", requireAuth, requireAdmin, 
         saveComments(comments);
 
         console.log(`[ADMIN] ${req.session.userId} deleted comment ${req.params.id} by ${removed.username} on ${req.params.filename}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.get("/api/admin/reports", requireAuth, requireAdmin, (req, res) => {
+    try {
+        const reports = loadReports();
+        const list = [...reports].reverse();
+        res.json({ success: true, reports: list, total: list.length });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.delete("/api/admin/report/:id", requireAuth, requireAdmin, csrfProtection, (req, res) => {
+    try {
+        const reports = loadReports();
+        const idx = reports.findIndex(r => r.id === req.params.id);
+        if (idx === -1) {
+            return res.status(404).json({ success: false, error: "通報が見つかりません" });
+        }
+        const removed = reports.splice(idx, 1)[0];
+        saveReports(reports);
+        console.log(`[ADMIN] ${req.session.userId} dismissed report ${req.params.id} for ${removed.filename}`);
         res.json({ success: true });
     } catch (err) {
         console.error(err);

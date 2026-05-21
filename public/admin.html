@@ -160,6 +160,7 @@ tr:hover td{background:rgba(124,77,255,0.04)}
         <button class="tab active" data-panel="videos" onclick="switchPanel('videos')">動画</button>
         <button class="tab" data-panel="users" onclick="switchPanel('users')">ユーザー</button>
         <button class="tab" data-panel="comments" onclick="switchPanel('comments')">コメント</button>
+        <button class="tab" data-panel="reports" onclick="switchPanel('reports')">通報</button>
     </div>
 
     <div class="searchBar">
@@ -169,6 +170,7 @@ tr:hover td{background:rgba(124,77,255,0.04)}
     <div class="panel active" id="panel-videos"></div>
     <div class="panel" id="panel-users"></div>
     <div class="panel" id="panel-comments"></div>
+    <div class="panel" id="panel-reports"></div>
 </div>
 
 <div class="modalOverlay" id="confirmModal">
@@ -196,7 +198,7 @@ tr:hover td{background:rgba(124,77,255,0.04)}
 let csrfToken = null;
 let currentUser = null;
 let currentPanel = 'videos';
-let adminData = { users: [], videos: [], comments: [] };
+let adminData = { users: [], videos: [], comments: [], reports: [] };
 let pendingAction = null;
 
 async function init() {
@@ -228,26 +230,31 @@ async function loadData() {
     document.getElementById("panel-videos").innerHTML = '<div class="loading">読み込み中...</div>';
     document.getElementById("panel-users").innerHTML = '<div class="loading">読み込み中...</div>';
     document.getElementById("panel-comments").innerHTML = '<div class="loading">読み込み中...</div>';
+    document.getElementById("panel-reports").innerHTML = '<div class="loading">読み込み中...</div>';
 
     try {
-        const [videosRes, usersRes, commentsRes] = await Promise.all([
+        const [videosRes, usersRes, commentsRes, reportsRes] = await Promise.all([
             csrfFetch("/api/admin/videos"),
             csrfFetch("/api/admin/users"),
-            csrfFetch("/api/admin/comments")
+            csrfFetch("/api/admin/comments"),
+            csrfFetch("/api/admin/reports")
         ]);
 
         const videosData = await videosRes.json();
         const usersData = await usersRes.json();
         const commentsData = await commentsRes.json();
+        const reportsData = await reportsRes.json();
 
         if (videosData.success) adminData.videos = videosData.videos;
         if (usersData.success) adminData.users = usersData.users;
         if (commentsData.success) adminData.comments = commentsData.comments;
+        if (reportsData.success) adminData.reports = reportsData.reports;
 
         renderStats();
         renderVideos();
         renderUsers();
         renderComments();
+        renderReports();
     } catch (e) {
         console.error(e);
         document.getElementById("panel-videos").innerHTML =
@@ -269,6 +276,10 @@ function renderStats() {
             <div class="num">${adminData.comments.length}</div>
             <div class="label">コメント</div>
         </div>
+        <div class="statCard">
+            <div class="num">${adminData.reports.length}</div>
+            <div class="label">通報</div>
+        </div>
     `;
 }
 
@@ -288,6 +299,7 @@ function filterCurrentPanel() {
         case "videos": renderVideos(q); break;
         case "users": renderUsers(q); break;
         case "comments": renderComments(q); break;
+        case "reports": renderReports(q); break;
     }
 }
 
@@ -504,6 +516,70 @@ function confirmDeleteComment(filename, id) {
                 filterCurrentPanel();
             } else {
                 showError(data.error || "削除に失敗しました");
+            }
+        }
+    );
+}
+
+function renderReports(filter) {
+    const el = document.getElementById("panel-reports");
+    let list = adminData.reports;
+    if (filter) {
+        list = list.filter(r =>
+            r.videoTitle.toLowerCase().includes(filter) ||
+            r.reportedBy.toLowerCase().includes(filter) ||
+            r.reason.toLowerCase().includes(filter) ||
+            (r.details && r.details.toLowerCase().includes(filter))
+        );
+    }
+    if (!list.length) {
+        el.innerHTML = '<div class="empty">通報はありません</div>';
+        return;
+    }
+    const reasonLabels = {
+        spam: "スパム・宣伝",
+        inappropriate: "不適切な内容",
+        copyright: "著作権侵害",
+        harassment: "嫌がらせ・迷惑行為",
+        other: "その他"
+    };
+    el.innerHTML = `
+        <table>
+            <thead><tr>
+                <th>通報者</th>
+                <th>動画</th>
+                <th>理由</th>
+                <th>詳細</th>
+                <th>日時</th>
+                <th></th>
+            </tr></thead>
+            <tbody>${list.map(r => `
+                <tr>
+                    <td><span style="color:#b8b8ff;font-weight:500">${escapeHtml(r.reportedBy)}</span></td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(r.videoTitle)}</td>
+                    <td><span class="badge">${reasonLabels[r.reason] || r.reason}</span></td>
+                    <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#a0a0b5;font-size:13px">${r.details ? escapeHtml(r.details) : '<span style="color:#6c6c82">—</span>'}</td>
+                    <td style="color:#6c6c82;font-size:12px;white-space:nowrap">${new Date(r.createdAt).toLocaleString("ja-JP")}</td>
+                    <td><button class="deleteBtn" onclick="confirmDismissReport('${r.id.replace(/'/g, "\\'")}')">却下</button></td>
+                </tr>
+            `).join("")}</tbody>
+        </table>
+    `;
+}
+
+function confirmDismissReport(id) {
+    showConfirm(
+        "通報を却下",
+        "この通報を却下しますか？動画は削除されません。",
+        async () => {
+            const res = await csrfFetch("/api/admin/report/" + encodeURIComponent(id), { method: "DELETE" });
+            const data = await res.json();
+            if (data.success) {
+                adminData.reports = adminData.reports.filter(r => r.id !== id);
+                renderStats();
+                filterCurrentPanel();
+            } else {
+                showError(data.error || "処理に失敗しました");
             }
         }
     );
