@@ -351,7 +351,7 @@ style="text-decoration:none">
 </div>
 
 <div class="heroSub">
-タイトルとタグを入力して、動画をアップロード
+タイトル・タグ・ライセンスを入力して、動画をアップロード
 </div>
 
 <div class="uploadForm">
@@ -373,6 +373,22 @@ id="descriptionInput"
 class="titleInput"
 style="resize:vertical;min-height:80px"
 placeholder="動画の説明（任意、2000文字以内）"></textarea>
+
+<select
+id="licenseSelect"
+class="titleInput"
+style="cursor:pointer">
+<option value="all_rights_reserved">All Rights Reserved</option>
+<option value="cc_by">CC BY (表示)</option>
+<option value="cc_by_sa">CC BY-SA (表示-継承)</option>
+<option value="cc_by_nc">CC BY-NC (表示-非営利)</option>
+<option value="cc_by_nc_sa">CC BY-NC-SA (表示-非営利-継承)</option>
+<option value="cc_by_nd">CC BY-ND (表示-改変禁止)</option>
+<option value="cc_by_nc_nd">CC BY-NC-ND (表示-非営利-改変禁止)</option>
+<option value="public_domain">パブリックドメイン</option>
+<option value="royalty_free">ロイヤリティフリー</option>
+<option value="other">その他</option>
+</select>
 
 <label class="customFile">
 
@@ -539,6 +555,8 @@ async function upload() {
             formData.append("description", descriptionVal);
 
             formData.append("tags", tagRaw);
+
+            formData.append("license", document.getElementById("licenseSelect").value);
 
             const headers = csrfToken ? { "X-CSRF-Token": csrfToken } : {};
             const res = await fetch("/upload-chunk", {

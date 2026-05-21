@@ -547,7 +547,8 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
             fileName,
             title,
             description,
-            tags
+            tags,
+            license
         } = req.body;
 
         const dir = path.join(chunksDir, fileId);
@@ -581,6 +582,9 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
             if (tagList.length > 10) {
                 return res.status(400).json({ success: false, error: "タグは最大10個までです" });
             }
+
+            const validLicenses = ["all_rights_reserved", "cc_by", "cc_by_sa", "cc_by_nc", "cc_by_nc_sa", "cc_by_nd", "cc_by_nc_nd", "public_domain", "royalty_free", "other"];
+            const licenseVal = license && validLicenses.includes(license) ? license : "all_rights_reserved";
 
             const safeName =
                 Date.now() +
@@ -630,6 +634,7 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                     title: title || safeName,
                     description: description || "",
                     tags: tagList,
+                    license: licenseVal,
                     uploadedBy: req.session.userId,
                     likes: [],
                     views: 0,
@@ -754,7 +759,7 @@ app.patch("/video/:filename", requireAuth, csrfProtection, (req, res) => {
 
     try {
 
-        const { title, description, tags } = req.body;
+        const { title, description, tags, license } = req.body;
 
         const metadata = loadMetadata();
         const video = metadata[req.params.filename];
@@ -789,6 +794,14 @@ app.patch("/video/:filename", requireAuth, csrfProtection, (req, res) => {
                     return res.status(400).json({ success: false, error: "タグは最大10個までです" });
                 }
                 metadata[req.params.filename].tags = tagList;
+            }
+
+            if (license !== undefined) {
+                const validLicenses = ["all_rights_reserved", "cc_by", "cc_by_sa", "cc_by_nc", "cc_by_nc_sa", "cc_by_nd", "cc_by_nc_nd", "public_domain", "royalty_free", "other"];
+                if (!validLicenses.includes(license)) {
+                    return res.status(400).json({ success: false, error: "無効なライセンスです" });
+                }
+                metadata[req.params.filename].license = license;
             }
 
             saveMetadata(metadata);
@@ -1549,6 +1562,7 @@ app.get("/api/video/:filename", (req, res) => {
                 title: video.title || req.params.filename,
                 description: video.description || "",
                 tags: video.tags || [],
+                license: video.license || "all_rights_reserved",
                 uploadedBy: video.uploadedBy || null,
                 likes: video.likes?.length || 0,
                 likedByUser: req.session.userId && video.likes?.includes(req.session.userId) || false,
@@ -1580,6 +1594,7 @@ app.get("/list", (req, res) => {
             title: meta.title || file,
             description: meta.description || "",
             tags: meta.tags || [],
+            license: meta.license || "all_rights_reserved",
             uploadedBy: meta.uploadedBy || null,
             likes: meta.likes?.length || 0,
             likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
@@ -1620,6 +1635,7 @@ app.get("/channel/:username", (req, res) => {
             title: meta.title || file,
             description: meta.description || "",
             tags: meta.tags || [],
+            license: meta.license || "all_rights_reserved",
             uploadedBy: meta.uploadedBy || null,
             likes: meta.likes?.length || 0,
             likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
@@ -1670,6 +1686,7 @@ app.get("/search", (req, res) => {
             title: meta.title || file,
             description: meta.description || "",
             tags: meta.tags || [],
+            license: meta.license || "all_rights_reserved",
             uploadedBy: meta.uploadedBy || null,
             likes: meta.likes?.length || 0,
             likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,

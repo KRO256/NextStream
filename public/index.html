@@ -1066,6 +1066,21 @@ video{
     gap:6px;
 }
 
+#videoPage .videoLicense{
+    margin-top:12px;
+    font-size:13px;
+    color:#8c8ca3;
+}
+
+#videoPage .videoLicense a{
+    color:#7c4dff;
+    text-decoration:none;
+}
+
+#videoPage .videoLicense a:hover{
+    text-decoration:underline;
+}
+
 #videoPage .commentsSection{
     margin-top:24px;
     border-top:1px solid rgba(255,255,255,0.08);
@@ -1878,6 +1893,7 @@ onclick="clearSearch()">
         <div class="videoDesc" id="videoDescription"></div>
         <div class="videoTags" id="videoPageTags"></div>
         <div class="videoMeta" id="videoMeta"></div>
+        <div class="videoLicense" id="videoLicense"></div>
         <div class="videoActions" id="videoActions"></div>
     </div>
     <div class="commentsSection" id="videoPageComments">
@@ -3603,6 +3619,32 @@ function renderVideoDetail(video) {
     } else {
         tagsContainer.innerHTML = "";
     }
+
+    const licenseLabels = {
+        "all_rights_reserved": "All Rights Reserved",
+        "cc_by": "CC BY (表示)",
+        "cc_by_sa": "CC BY-SA (表示-継承)",
+        "cc_by_nc": "CC BY-NC (表示-非営利)",
+        "cc_by_nc_sa": "CC BY-NC-SA (表示-非営利-継承)",
+        "cc_by_nd": "CC BY-ND (表示-改変禁止)",
+        "cc_by_nc_nd": "CC BY-NC-ND (表示-非営利-改変禁止)",
+        "public_domain": "パブリックドメイン",
+        "royalty_free": "ロイヤリティフリー",
+        "other": "その他"
+    };
+    const licenseLinks = {
+        "cc_by": "https://creativecommons.org/licenses/by/4.0/",
+        "cc_by_sa": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "cc_by_nc": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "cc_by_nc_sa": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        "cc_by_nd": "https://creativecommons.org/licenses/by-nd/4.0/",
+        "cc_by_nc_nd": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+        "public_domain": "https://creativecommons.org/publicdomain/zero/1.0/"
+    };
+    const licKey = video.license || "all_rights_reserved";
+    const licLabel = licenseLabels[licKey] || licKey;
+    const licLink = licenseLinks[licKey];
+    document.getElementById("videoLicense").innerHTML = "ライセンス: " + (licLink ? '<a href="' + licLink + '" target="_blank" rel="noopener">' + licLabel + '</a>' : licLabel);
 
     const durStr = video.duration ? ' · <span class="duration">' + formatDuration(video.duration) + '</span>' : "";
 
