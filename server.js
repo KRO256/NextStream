@@ -1,6 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
+const fsp = fs.promises;
 const path = require("path");
 const bcrypt = require("bcrypt");
 const session = require("express-session");
@@ -96,149 +97,149 @@ const reportsPath = path.join(__dirname, "reports.json");
     }
 });
 
-function loadMetadata() {
+async function loadMetadata() {
     try {
-        return JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+        return JSON.parse(await fsp.readFile(metadataPath, "utf8"));
     } catch {
         return {};
     }
 }
 
-function saveMetadata(data) {
-    fs.writeFileSync(metadataPath, JSON.stringify(data, null, 2));
+async function saveMetadata(data) {
+    await fsp.writeFile(metadataPath, JSON.stringify(data, null, 2));
 }
 
-function loadUsers() {
+async function loadUsers() {
     try {
-        return JSON.parse(fs.readFileSync(usersPath, "utf8"));
+        return JSON.parse(await fsp.readFile(usersPath, "utf8"));
     } catch {
         return {};
     }
 }
 
-function saveUsers(data) {
-    fs.writeFileSync(usersPath, JSON.stringify(data, null, 2));
+async function saveUsers(data) {
+    await fsp.writeFile(usersPath, JSON.stringify(data, null, 2));
 }
 
-function loadSubscriptions() {
+async function loadSubscriptions() {
     try {
-        return JSON.parse(fs.readFileSync(subscriptionsPath, "utf8"));
+        return JSON.parse(await fsp.readFile(subscriptionsPath, "utf8"));
     } catch {
         return {};
     }
 }
 
-function saveSubscriptions(data) {
-    fs.writeFileSync(subscriptionsPath, JSON.stringify(data, null, 2));
+async function saveSubscriptions(data) {
+    await fsp.writeFile(subscriptionsPath, JSON.stringify(data, null, 2));
 }
 
-function loadViews() {
+async function loadViews() {
     try {
-        const data = JSON.parse(fs.readFileSync(viewsPath, "utf8"));
+        const data = JSON.parse(await fsp.readFile(viewsPath, "utf8"));
         return (data && typeof data === "object" && !Array.isArray(data)) ? data : {};
     } catch {
         return {};
     }
 }
 
-function saveViews(data) {
-    fs.writeFileSync(viewsPath, JSON.stringify(data, null, 2));
+async function saveViews(data) {
+    await fsp.writeFile(viewsPath, JSON.stringify(data, null, 2));
 }
 
-function loadComments() {
+async function loadComments() {
     try {
-        return JSON.parse(fs.readFileSync(commentsPath, "utf8"));
+        return JSON.parse(await fsp.readFile(commentsPath, "utf8"));
     } catch {
         return {};
     }
 }
 
-function saveComments(data) {
-    fs.writeFileSync(commentsPath, JSON.stringify(data, null, 2));
+async function saveComments(data) {
+    await fsp.writeFile(commentsPath, JSON.stringify(data, null, 2));
 }
 
-function loadBookmarks() {
+async function loadBookmarks() {
     try {
-        return JSON.parse(fs.readFileSync(bookmarksPath, "utf8"));
+        return JSON.parse(await fsp.readFile(bookmarksPath, "utf8"));
     } catch {
         return {};
     }
 }
 
-function saveBookmarks(data) {
-    fs.writeFileSync(bookmarksPath, JSON.stringify(data, null, 2));
+async function saveBookmarks(data) {
+    await fsp.writeFile(bookmarksPath, JSON.stringify(data, null, 2));
 }
 
-function loadProgress() {
+async function loadProgress() {
     try {
-        return JSON.parse(fs.readFileSync(progressPath, "utf8"));
+        return JSON.parse(await fsp.readFile(progressPath, "utf8"));
     } catch {
         return {};
     }
 }
 
-function saveProgress(data) {
-    fs.writeFileSync(progressPath, JSON.stringify(data, null, 2));
+async function saveProgress(data) {
+    await fsp.writeFile(progressPath, JSON.stringify(data, null, 2));
 }
 
-function loadProfiles() {
+async function loadProfiles() {
     try {
-        return JSON.parse(fs.readFileSync(profilesPath, "utf8"));
+        return JSON.parse(await fsp.readFile(profilesPath, "utf8"));
     } catch {
         return {};
     }
 }
 
-function saveProfiles(data) {
-    fs.writeFileSync(profilesPath, JSON.stringify(data, null, 2));
+async function saveProfiles(data) {
+    await fsp.writeFile(profilesPath, JSON.stringify(data, null, 2));
 }
 
-function loadNotifications() {
+async function loadNotifications() {
     try {
-        return JSON.parse(fs.readFileSync(notificationsPath, "utf8"));
+        return JSON.parse(await fsp.readFile(notificationsPath, "utf8"));
     } catch {
         return {};
     }
 }
 
-function saveNotifications(data) {
-    fs.writeFileSync(notificationsPath, JSON.stringify(data, null, 2));
+async function saveNotifications(data) {
+    await fsp.writeFile(notificationsPath, JSON.stringify(data, null, 2));
 }
 
-function loadPlaylists() {
+async function loadPlaylists() {
     try {
-        return JSON.parse(fs.readFileSync(playlistsPath, "utf8"));
+        return JSON.parse(await fsp.readFile(playlistsPath, "utf8"));
     } catch {
         return {};
     }
 }
 
-function savePlaylists(data) {
-    fs.writeFileSync(playlistsPath, JSON.stringify(data, null, 2));
+async function savePlaylists(data) {
+    await fsp.writeFile(playlistsPath, JSON.stringify(data, null, 2));
 }
 
-function loadHistory() {
+async function loadHistory() {
     try {
-        return JSON.parse(fs.readFileSync(historyPath, "utf8"));
+        return JSON.parse(await fsp.readFile(historyPath, "utf8"));
     } catch {
         return {};
     }
 }
 
-function saveHistory(data) {
-    fs.writeFileSync(historyPath, JSON.stringify(data, null, 2));
+async function saveHistory(data) {
+    await fsp.writeFile(historyPath, JSON.stringify(data, null, 2));
 }
 
-function loadReports() {
+async function loadReports() {
     try {
-        return JSON.parse(fs.readFileSync(reportsPath, "utf8"));
+        return JSON.parse(await fsp.readFile(reportsPath, "utf8"));
     } catch {
         return [];
     }
 }
 
-function saveReports(data) {
-    fs.writeFileSync(reportsPath, JSON.stringify(data, null, 2));
+async function saveReports(data) {
+    await fsp.writeFile(reportsPath, JSON.stringify(data, null, 2));
 }
 
 function requireAuth(req, res, next) {
@@ -346,7 +347,7 @@ app.post("/api/register", rateLimit({
             return res.status(400).json({ success: false, error: "パスワードは6文字以上で入力してください" });
         }
 
-        const users = loadUsers();
+        const users = await loadUsers();
 
         if (users[username]) {
             return res.status(409).json({ success: false, error: "このユーザー名は既に使用されています" });
@@ -355,18 +356,18 @@ app.post("/api/register", rateLimit({
         const hashedPassword = await bcrypt.hash(password, 10);
         const isAdmin = adminUsername && username === adminUsername && Object.keys(users).length === 0;
         users[username] = { password: hashedPassword, createdAt: new Date().toISOString(), admin: isAdmin || undefined };
-        saveUsers(users);
+        await saveUsers(users);
 
-        req.session.regenerate(err => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
-            }
-            req.session.userId = username;
-            if (isAdmin) req.session.isAdmin = true;
-            req.session.csrfToken = crypto.randomUUID();
-            res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
+        await new Promise((resolve, reject) => {
+            req.session.regenerate(err => {
+                if (err) return reject(err);
+                resolve();
+            });
         });
+        req.session.userId = username;
+        if (isAdmin) req.session.isAdmin = true;
+        req.session.csrfToken = crypto.randomUUID();
+        res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
@@ -386,7 +387,7 @@ app.post("/api/login", rateLimit({
             return res.status(400).json({ success: false, error: "ユーザー名とパスワードを入力してください" });
         }
 
-        const users = loadUsers();
+        const users = await loadUsers();
         const user = users[username];
 
         if (!user) {
@@ -398,34 +399,34 @@ app.post("/api/login", rateLimit({
             return res.status(401).json({ success: false, error: "ユーザー名またはパスワードが間違っています" });
         }
 
-        req.session.regenerate(err => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
-            }
-            req.session.userId = username;
-            if (user.admin) req.session.isAdmin = true;
-            req.session.csrfToken = crypto.randomUUID();
-            res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
+        await new Promise((resolve, reject) => {
+            req.session.regenerate(err => {
+                if (err) return reject(err);
+                resolve();
+            });
         });
+        req.session.userId = username;
+        if (user.admin) req.session.isAdmin = true;
+        req.session.csrfToken = crypto.randomUUID();
+        res.json({ success: true, user: username, csrfToken: req.session.csrfToken });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, error: "サーバーエラーが発生しました" });
     }
 });
 
-app.get("/api/csrf-token", (req, res) => {
+app.get("/api/csrf-token", async (req, res) => {
     res.json({ success: true, csrfToken: req.session.csrfToken });
 });
 
-app.post("/api/logout", csrfProtection, (req, res) => {
+app.post("/api/logout", csrfProtection, async (req, res) => {
     req.session.destroy(err => {
         if (err) console.error(err);
         res.json({ success: true });
     });
 });
 
-app.get("/api/me", (req, res) => {
+app.get("/api/me", async (req, res) => {
     if (req.session.userId) {
         res.json({ success: true, user: req.session.userId, isAdmin: req.session.isAdmin || false, csrfToken: req.session.csrfToken });
     } else {
@@ -440,7 +441,7 @@ app.delete("/api/account", requireAuth, csrfProtection, async (req, res) => {
             return res.status(400).json({ success: false, error: "パスワードを入力してください" });
         }
 
-        const users = loadUsers();
+        const users = await loadUsers();
         const user = users[req.session.userId];
 
         if (!user) {
@@ -454,59 +455,59 @@ app.delete("/api/account", requireAuth, csrfProtection, async (req, res) => {
 
         const username = req.session.userId;
         delete users[username];
-        saveUsers(users);
+        await saveUsers(users);
 
-        const profiles = loadProfiles();
+        const profiles = await loadProfiles();
         if (profiles[username]) {
             if (profiles[username].avatar) {
                 const avatarFile = path.join(avatarsDir, path.basename(profiles[username].avatar));
-                if (fs.existsSync(avatarFile)) fs.unlinkSync(avatarFile);
+                try { await fsp.unlink(avatarFile); } catch {}
             }
             delete profiles[username];
-            saveProfiles(profiles);
+            await saveProfiles(profiles);
         }
 
-        const notifications = loadNotifications();
+        const notifications = await loadNotifications();
         delete notifications[username];
-        saveNotifications(notifications);
+        await saveNotifications(notifications);
 
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         const userVideos = Object.keys(metadata).filter(k => metadata[k].uploadedBy === username);
         for (const fn of userVideos) {
             const fp = path.join(uploadDir, fn);
-            if (fs.existsSync(fp)) fs.unlinkSync(fp);
+            try { await fsp.unlink(fp); } catch {}
             const hls = path.join(hlsDir, fn);
-            if (fs.existsSync(hls)) fs.rmSync(hls, { recursive: true, force: true });
+            try { await fsp.rm(hls, { recursive: true, force: true }); } catch {}
             delete metadata[fn];
         }
-        saveMetadata(metadata);
+        await saveMetadata(metadata);
 
-        const comments = loadComments();
+        const comments = await loadComments();
         for (const fn of Object.keys(comments)) {
             comments[fn] = comments[fn].filter(c => c.username !== username);
             if (comments[fn].length === 0) delete comments[fn];
         }
-        saveComments(comments);
+        await saveComments(comments);
 
-        const bookmarks = loadBookmarks();
+        const bookmarks = await loadBookmarks();
         delete bookmarks[username];
         for (const user of Object.keys(bookmarks)) {
             bookmarks[user] = bookmarks[user].filter(f => !userVideos.includes(f));
         }
-        saveBookmarks(bookmarks);
+        await saveBookmarks(bookmarks);
 
-        const subs = loadSubscriptions();
+        const subs = await loadSubscriptions();
         delete subs[username];
         for (const user of Object.keys(subs)) {
             subs[user] = subs[user].filter(s => s !== username);
         }
-        saveSubscriptions(subs);
+        await saveSubscriptions(subs);
 
-        const history = loadHistory();
+        const history = await loadHistory();
         delete history[username];
-        saveHistory(history);
+        await saveHistory(history);
 
-        const playlists = loadPlaylists();
+        const playlists = await loadPlaylists();
         for (const [pid, pl] of Object.entries(playlists)) {
             if (pl.username === username) {
                 delete playlists[pid];
@@ -514,9 +515,14 @@ app.delete("/api/account", requireAuth, csrfProtection, async (req, res) => {
                 pl.videoFilenames = pl.videoFilenames.filter(f => !userVideos.includes(f));
             }
         }
-        savePlaylists(playlists);
+        await savePlaylists(playlists);
 
-        req.session.destroy();
+        await new Promise((resolve, reject) => {
+            req.session.destroy(err => {
+                if (err) return reject(err);
+                resolve();
+            });
+        });
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -524,20 +530,33 @@ app.delete("/api/account", requireAuth, csrfProtection, async (req, res) => {
     }
 });
 
-function readVideoFiles() {
-    return fs.readdirSync(uploadDir).filter(f => {
-        try { return fs.statSync(path.join(uploadDir, f)).isFile(); }
-        catch { return false; }
-    });
+async function readVideoFiles() {
+    try {
+        const entries = await fsp.readdir(uploadDir);
+        const results = [];
+        for (const f of entries) {
+            try {
+                const stat = await fsp.stat(path.join(uploadDir, f));
+                if (stat.isFile()) results.push(f);
+            } catch {}
+        }
+        return results;
+    } catch {
+        return [];
+    }
 }
 
 function getVideoUrl(file, meta) {
     return meta && meta.hls ? "/hls/" + file + "/index.m3u8" : "/videos/" + file;
 }
 
-function getVideoThumbnailUrl(file) {
-    const thumbPath = path.join(thumbnailsDir, file + ".jpg");
-    return fs.existsSync(thumbPath) ? "/thumbnails/" + file + ".jpg" : null;
+async function getVideoThumbnailUrl(file) {
+    try {
+        await fsp.access(path.join(thumbnailsDir, file + ".jpg"));
+        return "/thumbnails/" + file + ".jpg";
+    } catch {
+        return null;
+    }
 }
 
 app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
@@ -545,7 +564,7 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
     max: 5,
     keyFn: req => "upload:" + req.session.userId,
     message: "アップロードは1時間に5回までです"
-}), upload.single("chunk"), (req, res) => {
+}), upload.single("chunk"), async (req, res) => {
 
     try {
 
@@ -576,24 +595,22 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
 
         const dir = path.join(chunksDir, fileId);
 
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir);
-        }
+        try { await fsp.mkdir(dir, { recursive: true }); } catch {}
 
         const chunkPath = path.join(dir, String(parsedChunkIndex));
 
         try {
-            fs.renameSync(req.file.path, chunkPath);
+            await fsp.rename(req.file.path, chunkPath);
         } catch (e) {
             if (e.code === "EXDEV") {
-                fs.copyFileSync(req.file.path, chunkPath);
-                fs.unlinkSync(req.file.path);
+                await fsp.copyFile(req.file.path, chunkPath);
+                await fsp.unlink(req.file.path);
             } else {
                 throw e;
             }
         }
 
-        const uploadedChunks = fs.readdirSync(dir);
+        const uploadedChunks = await fsp.readdir(dir);
 
         if (uploadedChunks.length === parsedTotalChunks) {
 
@@ -636,38 +653,44 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
 
                 const chunkFile = path.join(dir, String(i));
 
-                const chunkData = fs.readFileSync(chunkFile);
+                const chunkData = await fsp.readFile(chunkFile);
 
                 writeStream.write(chunkData);
             }
 
             writeStream.end();
 
-            writeStream.on("finish", () => {
+            writeStream.on("finish", async () => {
                 if (writeError) {
-                    fs.rmSync(dir, { recursive: true, force: true });
-                    if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath);
+                    try { await fsp.rm(dir, { recursive: true, force: true }); } catch {}
+                    try { await fsp.unlink(finalPath); } catch {}
                     return res.status(500).json({ success: false, error: "ファイル書き込みエラーが発生しました" });
                 }
 
-                fs.rmSync(dir, {
-                    recursive: true,
-                    force: true
-                });
+                try { await fsp.rm(dir, { recursive: true, force: true }); } catch {}
 
-                const metadata = loadMetadata();
+                const metadata = await loadMetadata();
 
                 let duration = 0;
                 try {
-                    const probe = spawnSync("ffprobe", [
-                        "-v", "error",
-                        "-show_entries", "format=duration",
-                        "-of", "default=noprint_wrappers=1:nokey=1",
-                        finalPath
-                    ], { timeout: 10000 });
-                    if (probe.status === 0) {
-                        duration = parseFloat(probe.stdout.toString().trim()) || 0;
-                    }
+                    const result = await new Promise((resolve, reject) => {
+                        const proc = spawn("ffprobe", [
+                            "-v", "error",
+                            "-show_entries", "format=duration",
+                            "-of", "default=noprint_wrappers=1:nokey=1",
+                            finalPath
+                        ]);
+                        let stdout = "";
+                        let stderr = "";
+                        proc.stdout.on("data", d => stdout += d.toString());
+                        proc.stderr.on("data", d => stderr += d.toString());
+                        proc.on("close", code => {
+                            if (code === 0) resolve(stdout.trim());
+                            else reject(new Error(stderr));
+                        });
+                        proc.on("error", reject);
+                    });
+                    duration = parseFloat(result) || 0;
                 } catch (e) {
                     console.error("ffprobe failed for", safeName, e.message);
                 }
@@ -683,16 +706,14 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                     duration: duration,
                     qualities: ["360p", "480p", "720p"]
                 };
-                saveMetadata(metadata);
+                await saveMetadata(metadata);
 
                 console.log("UPLOAD COMPLETE:", safeName);
 
                 res.json({ success: true });
 
                 const videoHlsDir = path.join(hlsDir, safeName);
-                if (!fs.existsSync(videoHlsDir)) {
-                    fs.mkdirSync(videoHlsDir);
-                }
+                try { await fsp.mkdir(videoHlsDir, { recursive: true }); } catch {}
 
                 const ffmpeg = spawn("ffmpeg", [
                     "-i", finalPath,
@@ -722,23 +743,23 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                     console.log("ffmpeg:", data.toString());
                 });
 
-                ffmpeg.on("close", code => {
+                ffmpeg.on("close", async (code) => {
                     clearTimeout(ffmpegTimeout);
                     if (code === 0) {
-                        const meta = loadMetadata();
+                        const meta = await loadMetadata();
                         if (meta[safeName]) {
                             meta[safeName].hls = true;
-                            saveMetadata(meta);
+                            await saveMetadata(meta);
                         }
                         console.log("HLS READY:", safeName);
 
                         const uploader = req.session.userId;
                         const videoTitle = meta[safeName]?.title || safeName;
                         try {
-                            const subs = loadSubscriptions();
+                            const subs = await loadSubscriptions();
                             const subscribers = subs[uploader] || [];
                             if (subscribers.length > 0) {
-                                const notifications = loadNotifications();
+                                const notifications = await loadNotifications();
                                 const notification = {
                                     id: crypto.randomUUID(),
                                     type: "new_video",
@@ -754,7 +775,7 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
                                     }
                                     notifications[subscriber].unshift({ ...notification });
                                 }
-                                saveNotifications(notifications);
+                                await saveNotifications(notifications);
                                 console.log("NOTIFICATIONS SENT to", subscribers.length, "subscribers of", uploader);
                             }
                         } catch (notifErr) {
@@ -795,12 +816,8 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
 
         console.error(err);
 
-        if (typeof dir === "string" && fs.existsSync(dir)) {
-            fs.rmSync(dir, { recursive: true, force: true });
-        }
-        if (typeof finalPath === "string" && fs.existsSync(finalPath)) {
-            fs.unlinkSync(finalPath);
-        }
+        try { await fsp.rm(dir, { recursive: true, force: true }); } catch {}
+        try { await fsp.unlink(finalPath); } catch {}
 
         res.status(500).json({
             success: false,
@@ -809,13 +826,13 @@ app.post("/upload-chunk", requireAuth, csrfProtection, rateLimit({
     }
 });
 
-app.patch("/video/:filename", requireAuth, csrfProtection, (req, res) => {
+app.patch("/video/:filename", requireAuth, csrfProtection, async (req, res) => {
 
     try {
 
         const { title, description, tags, license } = req.body;
 
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         const video = metadata[req.params.filename];
 
         if (video) {
@@ -861,7 +878,7 @@ app.patch("/video/:filename", requireAuth, csrfProtection, (req, res) => {
                 metadata[req.params.filename].license = license;
             }
 
-            saveMetadata(metadata);
+            await saveMetadata(metadata);
 
             res.json({ success: true });
 
@@ -882,9 +899,9 @@ app.patch("/video/:filename", requireAuth, csrfProtection, (req, res) => {
     }
 });
 
-app.post("/api/video/:filename/like", requireAuth, csrfProtection, (req, res) => {
+app.post("/api/video/:filename/like", requireAuth, csrfProtection, async (req, res) => {
     try {
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         const video = metadata[req.params.filename];
 
         if (!video) {
@@ -902,7 +919,7 @@ app.post("/api/video/:filename/like", requireAuth, csrfProtection, (req, res) =>
             video.likes.splice(userIndex, 1);
         }
 
-        saveMetadata(metadata);
+        await saveMetadata(metadata);
 
         res.json({
             success: true,
@@ -915,9 +932,9 @@ app.post("/api/video/:filename/like", requireAuth, csrfProtection, (req, res) =>
     }
 });
 
-app.post("/api/video/:filename/bookmark", requireAuth, csrfProtection, (req, res) => {
+app.post("/api/video/:filename/bookmark", requireAuth, csrfProtection, async (req, res) => {
     try {
-        const bookmarks = loadBookmarks();
+        const bookmarks = await loadBookmarks();
         const user = req.session.userId;
         if (!bookmarks[user]) {
             bookmarks[user] = [];
@@ -928,7 +945,7 @@ app.post("/api/video/:filename/bookmark", requireAuth, csrfProtection, (req, res
         } else {
             bookmarks[user].splice(idx, 1);
         }
-        saveBookmarks(bookmarks);
+        await saveBookmarks(bookmarks);
         res.json({
             success: true,
             bookmarked: idx === -1
@@ -939,31 +956,31 @@ app.post("/api/video/:filename/bookmark", requireAuth, csrfProtection, (req, res
     }
 });
 
-app.get("/api/bookmarks", requireAuth, (req, res) => {
+app.get("/api/bookmarks", requireAuth, async (req, res) => {
     try {
-        const bookmarks = loadBookmarks();
+        const bookmarks = await loadBookmarks();
         const userBookmarks = bookmarks[req.session.userId] || [];
-        const files = readVideoFiles();
-        const metadata = loadMetadata();
-        const videos = userBookmarks
-            .filter(file => files.includes(file) && metadata[file])
-            .map(file => {
-                const meta = metadata[file] || {};
-                return {
-                    name: file,
-                    url: getVideoUrl(file, meta),
-                    title: meta.title || file,
-                    description: meta.description || "",
-                    tags: meta.tags || [],
-                    uploadedBy: meta.uploadedBy || null,
-                    likes: meta.likes?.length || 0,
-                    likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
-                    bookmarkedByUser: true,
-                    views: meta.views || 0,
-                    thumbnailUrl: getVideoThumbnailUrl(file),
-                    duration: meta.duration || 0
-                };
+        const files = await readVideoFiles();
+        const metadata = await loadMetadata();
+        const videos = [];
+        for (const file of userBookmarks) {
+            if (!files.includes(file) || !metadata[file]) continue;
+            const meta = metadata[file] || {};
+            videos.push({
+                name: file,
+                url: getVideoUrl(file, meta),
+                title: meta.title || file,
+                description: meta.description || "",
+                tags: meta.tags || [],
+                uploadedBy: meta.uploadedBy || null,
+                likes: meta.likes?.length || 0,
+                likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
+                bookmarkedByUser: true,
+                views: meta.views || 0,
+                thumbnailUrl: await getVideoThumbnailUrl(file),
+                duration: meta.duration || 0
             });
+        }
         videos.reverse();
 
         const page = parseInt(req.query.page) || 1;
@@ -980,21 +997,21 @@ app.get("/api/bookmarks", requireAuth, (req, res) => {
     }
 });
 
-app.post("/api/video/:filename/progress", requireAuth, csrfProtection, (req, res) => {
+app.post("/api/video/:filename/progress", requireAuth, csrfProtection, async (req, res) => {
     try {
         const { time } = req.body;
         if (typeof time !== "number" || time < 0) {
             return res.status(400).json({ success: false, error: "再生時間が無効です" });
         }
-        const progress = loadProgress();
+        const progress = await loadProgress();
         const user = req.session.userId;
         if (!progress[user]) progress[user] = {};
         progress[user][req.params.filename] = time;
-        saveProgress(progress);
+        await saveProgress(progress);
 
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         const meta = metadata[req.params.filename];
-        const history = loadHistory();
+        const history = await loadHistory();
         if (!history[user]) history[user] = [];
         const existingIdx = history[user].findIndex(h => h.filename === req.params.filename);
         const entry = {
@@ -1009,7 +1026,7 @@ app.post("/api/video/:filename/progress", requireAuth, csrfProtection, (req, res
         } else {
             history[user].push(entry);
         }
-        saveHistory(history);
+        await saveHistory(history);
 
         res.json({ success: true });
     } catch (err) {
@@ -1018,9 +1035,9 @@ app.post("/api/video/:filename/progress", requireAuth, csrfProtection, (req, res
     }
 });
 
-app.get("/api/video/:filename/progress", requireAuth, (req, res) => {
+app.get("/api/video/:filename/progress", requireAuth, async (req, res) => {
     try {
-        const progress = loadProgress();
+        const progress = await loadProgress();
         const userData = progress[req.session.userId];
         const time = userData ? userData[req.params.filename] : null;
         res.json({ success: true, time: time || 0 });
@@ -1030,9 +1047,9 @@ app.get("/api/video/:filename/progress", requireAuth, (req, res) => {
     }
 });
 
-app.get("/api/history", requireAuth, (req, res) => {
+app.get("/api/history", requireAuth, async (req, res) => {
     try {
-        const history = loadHistory();
+        const history = await loadHistory();
         const userHistory = history[req.session.userId] || [];
         userHistory.sort((a, b) => b.watchedAt - a.watchedAt);
 
@@ -1043,10 +1060,11 @@ app.get("/api/history", requireAuth, (req, res) => {
         const totalPages = Math.ceil(total / limit);
         const paged = userHistory.slice(start, start + limit);
 
-        const metadata = loadMetadata();
-        const videos = paged.map(h => {
+        const metadata = await loadMetadata();
+        const videos = [];
+        for (const h of paged) {
             const meta = metadata[h.filename] || {};
-            return {
+            videos.push({
                 name: h.filename,
                 url: getVideoUrl(h.filename, meta),
                 title: meta.title || h.filename,
@@ -1055,11 +1073,11 @@ app.get("/api/history", requireAuth, (req, res) => {
                 uploadedBy: meta.uploadedBy || null,
                 likes: meta.likes?.length || 0,
                 views: meta.views || 0,
-                thumbnailUrl: getVideoThumbnailUrl(h.filename),
+                thumbnailUrl: await getVideoThumbnailUrl(h.filename),
                 progress: h.progress || 0,
                 duration: meta.duration || 0
-            };
-        });
+            });
+        }
 
         res.json({ videos, total, page, limit, totalPages });
     } catch (err) {
@@ -1068,11 +1086,11 @@ app.get("/api/history", requireAuth, (req, res) => {
     }
 });
 
-app.delete("/api/history", requireAuth, csrfProtection, (req, res) => {
+app.delete("/api/history", requireAuth, csrfProtection, async (req, res) => {
     try {
-        const history = loadHistory();
+        const history = await loadHistory();
         delete history[req.session.userId];
-        saveHistory(history);
+        await saveHistory(history);
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -1085,7 +1103,7 @@ app.post("/api/video/:filename/report", requireAuth, csrfProtection, rateLimit({
     max: 3,
     keyFn: req => "report:" + req.session.userId,
     message: "通報は1時間に3回までです"
-}), (req, res) => {
+}), async (req, res) => {
     try {
         const { reason, details } = req.body;
         if (!reason || !reason.trim()) {
@@ -1099,12 +1117,12 @@ app.post("/api/video/:filename/report", requireAuth, csrfProtection, rateLimit({
             return res.status(400).json({ success: false, error: "詳細は1000文字以内で入力してください" });
         }
 
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         if (!metadata[req.params.filename]) {
             return res.status(404).json({ success: false, error: "Video not found" });
         }
 
-        const reports = loadReports();
+        const reports = await loadReports();
         const report = {
             id: crypto.randomUUID(),
             filename: req.params.filename,
@@ -1115,7 +1133,7 @@ app.post("/api/video/:filename/report", requireAuth, csrfProtection, rateLimit({
             createdAt: new Date().toISOString()
         };
         reports.push(report);
-        saveReports(reports);
+        await saveReports(reports);
 
         res.json({ success: true, report });
     } catch (err) {
@@ -1124,7 +1142,7 @@ app.post("/api/video/:filename/report", requireAuth, csrfProtection, rateLimit({
     }
 });
 
-app.post("/api/channel/:username/subscribe", requireAuth, csrfProtection, (req, res) => {
+app.post("/api/channel/:username/subscribe", requireAuth, csrfProtection, async (req, res) => {
     try {
         const channel = req.params.username;
         const user = req.session.userId;
@@ -1133,12 +1151,12 @@ app.post("/api/channel/:username/subscribe", requireAuth, csrfProtection, (req, 
             return res.status(400).json({ success: false, error: "自分自身を登録できません" });
         }
 
-        const users = loadUsers();
+        const users = await loadUsers();
         if (!users[channel]) {
             return res.status(404).json({ success: false, error: "チャンネルが見つかりません" });
         }
 
-        const subscriptions = loadSubscriptions();
+        const subscriptions = await loadSubscriptions();
         if (!subscriptions[channel]) {
             subscriptions[channel] = [];
         }
@@ -1150,7 +1168,7 @@ app.post("/api/channel/:username/subscribe", requireAuth, csrfProtection, (req, 
             subscriptions[channel].splice(idx, 1);
         }
 
-        saveSubscriptions(subscriptions);
+        await saveSubscriptions(subscriptions);
 
         res.json({
             success: true,
@@ -1163,10 +1181,10 @@ app.post("/api/channel/:username/subscribe", requireAuth, csrfProtection, (req, 
     }
 });
 
-app.get("/api/channel/:username/subscribers", (req, res) => {
+app.get("/api/channel/:username/subscribers", async (req, res) => {
     try {
         const channel = req.params.username;
-        const subscriptions = loadSubscriptions();
+        const subscriptions = await loadSubscriptions();
         const subs = subscriptions[channel] || [];
 
         res.json({
@@ -1180,9 +1198,9 @@ app.get("/api/channel/:username/subscribers", (req, res) => {
     }
 });
 
-app.get("/api/notifications", requireAuth, (req, res) => {
+app.get("/api/notifications", requireAuth, async (req, res) => {
     try {
-        const notifications = loadNotifications();
+        const notifications = await loadNotifications();
         const userNotifs = notifications[req.session.userId] || [];
 
         const page = parseInt(req.query.page) || 1;
@@ -1199,9 +1217,9 @@ app.get("/api/notifications", requireAuth, (req, res) => {
     }
 });
 
-app.get("/api/notifications/unread-count", requireAuth, (req, res) => {
+app.get("/api/notifications/unread-count", requireAuth, async (req, res) => {
     try {
-        const notifications = loadNotifications();
+        const notifications = await loadNotifications();
         const userNotifs = notifications[req.session.userId] || [];
         const unread = userNotifs.filter(n => !n.read).length;
         res.json({ success: true, unread });
@@ -1211,14 +1229,14 @@ app.get("/api/notifications/unread-count", requireAuth, (req, res) => {
     }
 });
 
-app.post("/api/notifications/read", requireAuth, csrfProtection, (req, res) => {
+app.post("/api/notifications/read", requireAuth, csrfProtection, async (req, res) => {
     try {
-        const notifications = loadNotifications();
+        const notifications = await loadNotifications();
         if (notifications[req.session.userId]) {
             for (const n of notifications[req.session.userId]) {
                 n.read = true;
             }
-            saveNotifications(notifications);
+            await saveNotifications(notifications);
         }
         res.json({ success: true });
     } catch (err) {
@@ -1227,15 +1245,15 @@ app.post("/api/notifications/read", requireAuth, csrfProtection, (req, res) => {
     }
 });
 
-app.post("/api/notifications/read/:id", requireAuth, csrfProtection, (req, res) => {
+app.post("/api/notifications/read/:id", requireAuth, csrfProtection, async (req, res) => {
     try {
-        const notifications = loadNotifications();
+        const notifications = await loadNotifications();
         const userNotifs = notifications[req.session.userId];
         if (userNotifs) {
             const notif = userNotifs.find(n => n.id === req.params.id);
             if (notif) {
                 notif.read = true;
-                saveNotifications(notifications);
+                await saveNotifications(notifications);
             }
         }
         res.json({ success: true });
@@ -1245,9 +1263,9 @@ app.post("/api/notifications/read/:id", requireAuth, csrfProtection, (req, res) 
     }
 });
 
-app.get("/api/profile/:username", (req, res) => {
+app.get("/api/profile/:username", async (req, res) => {
     try {
-        const profiles = loadProfiles();
+        const profiles = await loadProfiles();
         const profile = profiles[req.params.username] || {};
         res.json({
             success: true,
@@ -1262,13 +1280,13 @@ app.get("/api/profile/:username", (req, res) => {
     }
 });
 
-app.put("/api/profile", requireAuth, csrfProtection, (req, res) => {
+app.put("/api/profile", requireAuth, csrfProtection, async (req, res) => {
     try {
         const { bio, removeAvatar } = req.body;
         if (bio !== undefined && bio.length > 500) {
             return res.status(400).json({ success: false, error: "プロフィール文は500文字以内で入力してください" });
         }
-        const profiles = loadProfiles();
+        const profiles = await loadProfiles();
         if (!profiles[req.session.userId]) {
             profiles[req.session.userId] = {};
         }
@@ -1278,11 +1296,11 @@ app.put("/api/profile", requireAuth, csrfProtection, (req, res) => {
         if (removeAvatar) {
             if (profiles[req.session.userId].avatar) {
                 const avatarFile = path.join(avatarsDir, path.basename(profiles[req.session.userId].avatar));
-                if (fs.existsSync(avatarFile)) fs.unlinkSync(avatarFile);
+                try { await fsp.unlink(avatarFile); } catch {}
             }
             profiles[req.session.userId].avatar = null;
         }
-        saveProfiles(profiles);
+        await saveProfiles(profiles);
         res.json({ success: true, profile: { bio: profiles[req.session.userId].bio || "", avatar: profiles[req.session.userId].avatar || null } });
     } catch (err) {
         console.error(err);
@@ -1310,8 +1328,8 @@ const avatarUpload = multer({
     }
 });
 
-app.post("/api/profile/avatar", requireAuth, csrfProtection, (req, res) => {
-    avatarUpload.single("avatar")(req, res, err => {
+app.post("/api/profile/avatar", requireAuth, csrfProtection, async (req, res) => {
+    avatarUpload.single("avatar")(req, res, async err => {
         if (err) {
             if (err instanceof multer.MulterError) {
                 if (err.code === "LIMIT_FILE_SIZE") {
@@ -1325,17 +1343,17 @@ app.post("/api/profile/avatar", requireAuth, csrfProtection, (req, res) => {
             return res.status(400).json({ success: false, error: "画像ファイルを選択してください" });
         }
         try {
-            const profiles = loadProfiles();
+            const profiles = await loadProfiles();
             if (!profiles[req.session.userId]) {
                 profiles[req.session.userId] = {};
             }
             if (profiles[req.session.userId].avatar) {
                 const oldAvatar = path.join(avatarsDir, path.basename(profiles[req.session.userId].avatar));
-                if (fs.existsSync(oldAvatar)) fs.unlinkSync(oldAvatar);
+                try { await fsp.unlink(oldAvatar); } catch {}
             }
             const avatarUrl = "/avatars/" + req.file.filename;
             profiles[req.session.userId].avatar = avatarUrl;
-            saveProfiles(profiles);
+            await saveProfiles(profiles);
             res.json({ success: true, avatar: avatarUrl });
         } catch (e) {
             console.error(e);
@@ -1344,9 +1362,9 @@ app.post("/api/profile/avatar", requireAuth, csrfProtection, (req, res) => {
     });
 });
 
-app.get("/api/settings/notifications", requireAuth, (req, res) => {
+app.get("/api/settings/notifications", requireAuth, async (req, res) => {
     try {
-        const profiles = loadProfiles();
+        const profiles = await loadProfiles();
         const profile = profiles[req.session.userId] || {};
         res.json({ success: true, enabled: profile.notificationsEnabled !== false });
     } catch (err) {
@@ -1355,15 +1373,15 @@ app.get("/api/settings/notifications", requireAuth, (req, res) => {
     }
 });
 
-app.put("/api/settings/notifications", requireAuth, csrfProtection, (req, res) => {
+app.put("/api/settings/notifications", requireAuth, csrfProtection, async (req, res) => {
     try {
         const { enabled } = req.body;
-        const profiles = loadProfiles();
+        const profiles = await loadProfiles();
         if (!profiles[req.session.userId]) {
             profiles[req.session.userId] = {};
         }
         profiles[req.session.userId].notificationsEnabled = enabled === true;
-        saveProfiles(profiles);
+        await saveProfiles(profiles);
         res.json({ success: true, enabled: profiles[req.session.userId].notificationsEnabled });
     } catch (err) {
         console.error(err);
@@ -1387,7 +1405,7 @@ app.post("/api/settings/password", requireAuth, csrfProtection, async (req, res)
             return res.status(400).json({ success: false, error: "新しいパスワードは現在のパスワードと異なるものを設定してください" });
         }
 
-        const users = loadUsers();
+        const users = await loadUsers();
         const user = users[req.session.userId];
         if (!user) {
             return res.status(404).json({ success: false, error: "ユーザーが見つかりません" });
@@ -1399,7 +1417,7 @@ app.post("/api/settings/password", requireAuth, csrfProtection, async (req, res)
         }
 
         user.password = await bcrypt.hash(newPassword, 10);
-        saveUsers(users);
+        await saveUsers(users);
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -1412,7 +1430,7 @@ app.post("/api/video/:filename/comment", requireAuth, csrfProtection, rateLimit(
     max: 20,
     keyFn: req => "comment:" + req.session.userId,
     message: "コメントの投稿は15分間に20回までです"
-}), (req, res) => {
+}), async (req, res) => {
     try {
         const { text } = req.body;
         if (!text || !text.trim()) {
@@ -1422,12 +1440,12 @@ app.post("/api/video/:filename/comment", requireAuth, csrfProtection, rateLimit(
             return res.status(400).json({ success: false, error: "コメントは500文字以内で入力してください" });
         }
 
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         if (!metadata[req.params.filename]) {
             return res.status(404).json({ success: false, error: "Video not found" });
         }
 
-        const comments = loadComments();
+        const comments = await loadComments();
         if (!comments[req.params.filename]) {
             comments[req.params.filename] = [];
         }
@@ -1440,7 +1458,7 @@ app.post("/api/video/:filename/comment", requireAuth, csrfProtection, rateLimit(
         };
 
         comments[req.params.filename].push(comment);
-        saveComments(comments);
+        await saveComments(comments);
 
         res.json({ success: true, comment });
     } catch (err) {
@@ -1449,9 +1467,9 @@ app.post("/api/video/:filename/comment", requireAuth, csrfProtection, rateLimit(
     }
 });
 
-app.get("/api/video/:filename/comments", (req, res) => {
+app.get("/api/video/:filename/comments", async (req, res) => {
     try {
-        const comments = loadComments();
+        const comments = await loadComments();
         const list = comments[req.params.filename] || [];
         res.json({ success: true, comments: list });
     } catch (err) {
@@ -1460,9 +1478,9 @@ app.get("/api/video/:filename/comments", (req, res) => {
     }
 });
 
-app.delete("/api/video/:filename/comment/:id", requireAuth, csrfProtection, (req, res) => {
+app.delete("/api/video/:filename/comment/:id", requireAuth, csrfProtection, async (req, res) => {
     try {
-        const comments = loadComments();
+        const comments = await loadComments();
         const list = comments[req.params.filename];
         if (!list) {
             return res.status(404).json({ success: false, error: "コメントが見つかりません" });
@@ -1478,7 +1496,7 @@ app.delete("/api/video/:filename/comment/:id", requireAuth, csrfProtection, (req
         }
 
         list.splice(idx, 1);
-        saveComments(comments);
+        await saveComments(comments);
 
         res.json({ success: true });
     } catch (err) {
@@ -1492,9 +1510,9 @@ app.post("/api/video/:filename/view", requireAuth, rateLimit({
     max: 10,
     keyFn: req => "view:" + req.session.userId + ":" + req.params.filename,
     message: "視聴数の更新は1分間に10回までです"
-}), csrfProtection, (req, res) => {
+}), csrfProtection, async (req, res) => {
     try {
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         const video = metadata[req.params.filename];
 
         if (!video) {
@@ -1502,15 +1520,15 @@ app.post("/api/video/:filename/view", requireAuth, rateLimit({
         }
 
         video.views = (video.views || 0) + 1;
-        saveMetadata(metadata);
+        await saveMetadata(metadata);
 
         const now = Date.now();
-        const views = loadViews();
+        const views = await loadViews();
         if (!views[req.params.filename]) {
             views[req.params.filename] = [];
         }
         views[req.params.filename].push(now);
-        saveViews(views);
+        await saveViews(views);
 
         let periodViews = null;
         if (req.query.period) {
@@ -1532,12 +1550,12 @@ app.post("/api/video/:filename/view", requireAuth, rateLimit({
     }
 });
 
-app.delete("/api/video/:filename", requireAuth, csrfProtection, (req, res) => {
+app.delete("/api/video/:filename", requireAuth, csrfProtection, async (req, res) => {
     try {
         if (!isValidFilename(req.params.filename)) {
             return res.status(400).json({ success: false, error: "無効なファイル名です" });
         }
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         const video = metadata[req.params.filename];
 
         if (!video) {
@@ -1549,55 +1567,51 @@ app.delete("/api/video/:filename", requireAuth, csrfProtection, (req, res) => {
         }
 
         const filePath = path.join(uploadDir, req.params.filename);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-        }
+        try { await fsp.unlink(filePath); } catch {}
 
         const videoHlsDir = path.join(hlsDir, req.params.filename);
-        if (fs.existsSync(videoHlsDir)) {
-            fs.rmSync(videoHlsDir, { recursive: true, force: true });
-        }
+        try { await fsp.rm(videoHlsDir, { recursive: true, force: true }); } catch {}
 
         delete metadata[req.params.filename];
-        saveMetadata(metadata);
+        await saveMetadata(metadata);
 
-        const comments = loadComments();
+        const comments = await loadComments();
         delete comments[req.params.filename];
-        saveComments(comments);
+        await saveComments(comments);
 
-        const views = loadViews();
+        const views = await loadViews();
         delete views[req.params.filename];
-        saveViews(views);
+        await saveViews(views);
 
-        const bookmarks = loadBookmarks();
+        const bookmarks = await loadBookmarks();
         for (const user of Object.keys(bookmarks)) {
             const idx = bookmarks[user].indexOf(req.params.filename);
             if (idx !== -1) {
                 bookmarks[user].splice(idx, 1);
             }
         }
-        saveBookmarks(bookmarks);
+        await saveBookmarks(bookmarks);
 
-        const playlists = loadPlaylists();
+        const playlists = await loadPlaylists();
         for (const playlist of Object.values(playlists)) {
             const idx = playlist.videoFilenames.indexOf(req.params.filename);
             if (idx !== -1) {
                 playlist.videoFilenames.splice(idx, 1);
             }
         }
-        savePlaylists(playlists);
+        await savePlaylists(playlists);
 
-        const history = loadHistory();
+        const history = await loadHistory();
         for (const user of Object.keys(history)) {
             history[user] = history[user].filter(h => h.filename !== req.params.filename);
             if (history[user].length === 0) delete history[user];
         }
-        saveHistory(history);
+        await saveHistory(history);
 
-        const reports = loadReports();
+        const reports = await loadReports();
         const remainingReports = reports.filter(r => r.filename !== req.params.filename);
         if (remainingReports.length !== reports.length) {
-            saveReports(remainingReports);
+            await saveReports(remainingReports);
         }
 
         res.json({ success: true });
@@ -1607,14 +1621,14 @@ app.delete("/api/video/:filename", requireAuth, csrfProtection, (req, res) => {
     }
 });
 
-app.get("/api/video/:filename", (req, res) => {
+app.get("/api/video/:filename", async (req, res) => {
     try {
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         const video = metadata[req.params.filename];
         if (!video) {
             return res.status(404).json({ success: false, error: "Video not found" });
         }
-        const bookmarks = loadBookmarks();
+        const bookmarks = await loadBookmarks();
         const userBookmarks = bookmarks[req.session.userId] || [];
         res.json({
             success: true,
@@ -1630,7 +1644,7 @@ app.get("/api/video/:filename", (req, res) => {
                 likedByUser: req.session.userId && video.likes?.includes(req.session.userId) || false,
                 bookmarkedByUser: req.session.userId && userBookmarks.includes(req.params.filename) || false,
                 views: video.views || 0,
-                thumbnailUrl: getVideoThumbnailUrl(req.params.filename),
+                thumbnailUrl: await getVideoThumbnailUrl(req.params.filename),
                 duration: video.duration || 0
             }
         });
@@ -1640,17 +1654,18 @@ app.get("/api/video/:filename", (req, res) => {
     }
 });
 
-app.get("/list", (req, res) => {
+app.get("/list", async (req, res) => {
 
-    const files = readVideoFiles();
+    const files = await readVideoFiles();
 
-    const metadata = loadMetadata();
-    const bookmarks = loadBookmarks();
+    const metadata = await loadMetadata();
+    const bookmarks = await loadBookmarks();
     const userBookmarks = bookmarks[req.session.userId] || [];
 
-    const videos = files.map(file => {
+    const videos = [];
+    for (const file of files) {
         const meta = metadata[file] || {};
-        return {
+        videos.push({
             name: file,
             url: getVideoUrl(file, meta),
             title: meta.title || file,
@@ -1662,10 +1677,10 @@ app.get("/list", (req, res) => {
             likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
             bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
             views: meta.views || 0,
-            thumbnailUrl: getVideoThumbnailUrl(file),
+            thumbnailUrl: await getVideoThumbnailUrl(file),
             duration: meta.duration || 0
-        };
-    });
+        });
+    }
 
     videos.reverse();
 
@@ -1679,19 +1694,18 @@ app.get("/list", (req, res) => {
     res.json({ videos: paged, total, page, limit, totalPages });
 });
 
-app.get("/channel/:username", (req, res) => {
+app.get("/channel/:username", async (req, res) => {
     const username = req.params.username;
-    const files = readVideoFiles();
-    const metadata = loadMetadata();
-    const bookmarks = loadBookmarks();
+    const files = await readVideoFiles();
+    const metadata = await loadMetadata();
+    const bookmarks = await loadBookmarks();
     const userBookmarks = bookmarks[req.session.userId] || [];
 
-    const videos = files.filter(file => {
+    const videos = [];
+    for (const file of files) {
         const meta = metadata[file];
-        return meta && meta.uploadedBy === username;
-    }).map(file => {
-        const meta = metadata[file] || {};
-        return {
+        if (!meta || meta.uploadedBy !== username) continue;
+        videos.push({
             name: file,
             url: getVideoUrl(file, meta),
             title: meta.title || file,
@@ -1703,10 +1717,10 @@ app.get("/channel/:username", (req, res) => {
             likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
             bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
             views: meta.views || 0,
-            thumbnailUrl: getVideoThumbnailUrl(file),
+            thumbnailUrl: await getVideoThumbnailUrl(file),
             duration: meta.duration || 0
-        };
-    });
+        });
+    }
 
     videos.reverse();
 
@@ -1720,7 +1734,7 @@ app.get("/channel/:username", (req, res) => {
     res.json({ videos: paged, total, page, limit, totalPages });
 });
 
-app.get("/search", (req, res) => {
+app.get("/search", async (req, res) => {
 
     const q = (req.query.q || "").toLowerCase().trim();
 
@@ -1728,21 +1742,20 @@ app.get("/search", (req, res) => {
         return res.json({ videos: [], total: 0, page: 1, limit: 30, totalPages: 0 });
     }
 
-    const files = readVideoFiles();
-    const metadata = loadMetadata();
-    const bookmarks = loadBookmarks();
+    const files = await readVideoFiles();
+    const metadata = await loadMetadata();
+    const bookmarks = await loadBookmarks();
     const userBookmarks = bookmarks[req.session.userId] || [];
 
-    const results = files.filter(file => {
+    const results = [];
+    for (const file of files) {
         const meta = metadata[file];
-        if (!meta) return false;
+        if (!meta) continue;
         const qLower = q.toLowerCase();
-        return (meta.title && meta.title.toLowerCase().includes(qLower)) ||
-               (meta.description && meta.description.toLowerCase().includes(qLower)) ||
-               (meta.tags && meta.tags.some(tag => tag.toLowerCase().includes(qLower)));
-    }).map(file => {
-        const meta = metadata[file] || {};
-        return {
+        if (!(meta.title && meta.title.toLowerCase().includes(qLower)) &&
+            !(meta.description && meta.description.toLowerCase().includes(qLower)) &&
+            !(meta.tags && meta.tags.some(tag => tag.toLowerCase().includes(qLower)))) continue;
+        results.push({
             name: file,
             url: getVideoUrl(file, meta),
             title: meta.title || file,
@@ -1754,10 +1767,10 @@ app.get("/search", (req, res) => {
             likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
             bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
             views: meta.views || 0,
-            thumbnailUrl: getVideoThumbnailUrl(file),
+            thumbnailUrl: await getVideoThumbnailUrl(file),
             duration: meta.duration || 0
-        };
-    });
+        });
+    }
 
     results.reverse();
 
@@ -1771,7 +1784,7 @@ app.get("/search", (req, res) => {
     res.json({ videos: paged, total, page, limit, totalPages });
 });
 
-app.get("/api/ranking", (req, res) => {
+app.get("/api/ranking", async (req, res) => {
     try {
         const period = req.query.period || "all";
         const now = Date.now();
@@ -1785,13 +1798,14 @@ app.get("/api/ranking", (req, res) => {
             default: cutoff = 0;
         }
 
-        const files = readVideoFiles();
-        const metadata = loadMetadata();
-        const views = loadViews();
-        const bookmarks = loadBookmarks();
+        const files = await readVideoFiles();
+        const metadata = await loadMetadata();
+        const views = await loadViews();
+        const bookmarks = await loadBookmarks();
         const userBookmarks = bookmarks[req.session.userId] || [];
 
-        const videos = files.map(file => {
+        const videos = [];
+        for (const file of files) {
             const meta = metadata[file];
             let periodViews = 0;
 
@@ -1803,7 +1817,7 @@ app.get("/api/ranking", (req, res) => {
                 }
             }
 
-            return {
+            videos.push({
                 name: file,
                 url: getVideoUrl(file, meta),
                 title: meta?.title || file,
@@ -1815,10 +1829,10 @@ app.get("/api/ranking", (req, res) => {
                 bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
                 views: periodViews,
                 totalViews: meta?.views || 0,
-                thumbnailUrl: getVideoThumbnailUrl(file),
+                thumbnailUrl: await getVideoThumbnailUrl(file),
                 duration: meta?.duration || 0
-            };
-        });
+            });
+        }
 
         videos.sort((a, b) => b.views - a.views);
 
@@ -1836,7 +1850,7 @@ app.get("/api/ranking", (req, res) => {
     }
 });
 
-app.get("/admin", (req, res) => {
+app.get("/admin", async (req, res) => {
     res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
@@ -1847,11 +1861,11 @@ const adminRateLimit = rateLimit({
     message: "リクエストが多すぎます"
 });
 
-app.get("/api/admin/users", requireAuth, requireAdmin, adminRateLimit, (req, res) => {
+app.get("/api/admin/users", requireAuth, requireAdmin, adminRateLimit, async (req, res) => {
     try {
-        const users = loadUsers();
-        const metadata = loadMetadata();
-        const comments = loadComments();
+        const users = await loadUsers();
+        const metadata = await loadMetadata();
+        const comments = await loadComments();
 
         const userList = Object.entries(users).map(([username, data]) => {
             const videoCount = Object.values(metadata).filter(v => v.uploadedBy === username).length;
@@ -1875,24 +1889,27 @@ app.get("/api/admin/users", requireAuth, requireAdmin, adminRateLimit, (req, res
     }
 });
 
-app.get("/api/admin/videos", requireAuth, requireAdmin, adminRateLimit, (req, res) => {
+app.get("/api/admin/videos", requireAuth, requireAdmin, adminRateLimit, async (req, res) => {
     try {
-        const metadata = loadMetadata();
-        const files = readVideoFiles();
-        const comments = loadComments();
+        const metadata = await loadMetadata();
+        const files = await readVideoFiles();
+        const comments = await loadComments();
 
-        const videoList = files.map(file => ({
-            name: file,
-            title: metadata[file]?.title || file,
-            description: metadata[file]?.description || "",
-            tags: metadata[file]?.tags || [],
-            uploadedBy: metadata[file]?.uploadedBy || null,
-            likes: metadata[file]?.likes?.length || 0,
-            views: metadata[file]?.views || 0,
-            hls: metadata[file]?.hls || false,
-            commentCount: (comments[file] || []).length,
-            thumbnailUrl: getVideoThumbnailUrl(file)
-        }));
+        const videoList = [];
+        for (const file of files) {
+            videoList.push({
+                name: file,
+                title: metadata[file]?.title || file,
+                description: metadata[file]?.description || "",
+                tags: metadata[file]?.tags || [],
+                uploadedBy: metadata[file]?.uploadedBy || null,
+                likes: metadata[file]?.likes?.length || 0,
+                views: metadata[file]?.views || 0,
+                hls: metadata[file]?.hls || false,
+                commentCount: (comments[file] || []).length,
+                thumbnailUrl: await getVideoThumbnailUrl(file)
+            });
+        }
 
         videoList.sort((a, b) => b.views - a.views);
         res.json({ success: true, videos: videoList, total: videoList.length });
@@ -1902,10 +1919,10 @@ app.get("/api/admin/videos", requireAuth, requireAdmin, adminRateLimit, (req, re
     }
 });
 
-app.get("/api/admin/comments", requireAuth, requireAdmin, adminRateLimit, (req, res) => {
+app.get("/api/admin/comments", requireAuth, requireAdmin, adminRateLimit, async (req, res) => {
     try {
-        const comments = loadComments();
-        const metadata = loadMetadata();
+        const comments = await loadComments();
+        const metadata = await loadMetadata();
         const allComments = [];
 
         for (const [filename, list] of Object.entries(comments)) {
@@ -1929,14 +1946,14 @@ app.get("/api/admin/comments", requireAuth, requireAdmin, adminRateLimit, (req, 
     }
 });
 
-app.delete("/api/admin/user/:username", requireAuth, requireAdmin, adminRateLimit, csrfProtection, (req, res) => {
+app.delete("/api/admin/user/:username", requireAuth, requireAdmin, adminRateLimit, csrfProtection, async (req, res) => {
     try {
         const targetUser = req.params.username;
         if (targetUser === req.session.userId) {
             return res.status(400).json({ success: false, error: "自分自身を削除することはできません" });
         }
 
-        const users = loadUsers();
+        const users = await loadUsers();
         if (!users[targetUser]) {
             return res.status(404).json({ success: false, error: "ユーザーが見つかりません" });
         }
@@ -1945,60 +1962,60 @@ app.delete("/api/admin/user/:username", requireAuth, requireAdmin, adminRateLimi
             return res.status(403).json({ success: false, error: "他の管理者を削除することはできません" });
         }
 
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         const userVideos = Object.keys(metadata).filter(k => metadata[k].uploadedBy === targetUser);
 
         for (const filename of userVideos) {
             const filePath = path.join(uploadDir, filename);
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            try { await fsp.unlink(filePath); } catch {}
             const videoHlsDir = path.join(hlsDir, filename);
-            if (fs.existsSync(videoHlsDir)) fs.rmSync(videoHlsDir, { recursive: true, force: true });
+            try { await fsp.rm(videoHlsDir, { recursive: true, force: true }); } catch {}
             delete metadata[filename];
         }
-        saveMetadata(metadata);
+        await saveMetadata(metadata);
 
-        const comments = loadComments();
+        const comments = await loadComments();
         for (const filename of Object.keys(comments)) {
             comments[filename] = comments[filename].filter(c => c.username !== targetUser);
             if (comments[filename].length === 0) delete comments[filename];
         }
-        saveComments(comments);
+        await saveComments(comments);
 
-        const views = loadViews();
+        const views = await loadViews();
         for (const filename of userVideos) {
             delete views[filename];
         }
-        saveViews(views);
+        await saveViews(views);
 
-        const bookmarks = loadBookmarks();
+        const bookmarks = await loadBookmarks();
         delete bookmarks[targetUser];
         for (const user of Object.keys(bookmarks)) {
             bookmarks[user] = bookmarks[user].filter(f => !userVideos.includes(f));
         }
-        saveBookmarks(bookmarks);
+        await saveBookmarks(bookmarks);
 
-        const subscriptions = loadSubscriptions();
+        const subscriptions = await loadSubscriptions();
         delete subscriptions[targetUser];
         for (const channel of Object.keys(subscriptions)) {
             subscriptions[channel] = subscriptions[channel].filter(s => s !== targetUser);
         }
-        saveSubscriptions(subscriptions);
+        await saveSubscriptions(subscriptions);
 
-        const profiles = loadProfiles();
+        const profiles = await loadProfiles();
         if (profiles[targetUser]) {
             if (profiles[targetUser].avatar) {
                 const avatarFile = path.join(avatarsDir, path.basename(profiles[targetUser].avatar));
-                if (fs.existsSync(avatarFile)) fs.unlinkSync(avatarFile);
+                try { await fsp.unlink(avatarFile); } catch {}
             }
             delete profiles[targetUser];
-            saveProfiles(profiles);
+            await saveProfiles(profiles);
         }
 
-        const notifications = loadNotifications();
+        const notifications = await loadNotifications();
         delete notifications[targetUser];
-        saveNotifications(notifications);
+        await saveNotifications(notifications);
 
-        const playlists = loadPlaylists();
+        const playlists = await loadPlaylists();
         for (const [pid, pl] of Object.entries(playlists)) {
             if (pl.username === targetUser) {
                 delete playlists[pid];
@@ -2006,24 +2023,24 @@ app.delete("/api/admin/user/:username", requireAuth, requireAdmin, adminRateLimi
                 pl.videoFilenames = pl.videoFilenames.filter(f => !userVideos.includes(f));
             }
         }
-        savePlaylists(playlists);
+        await savePlaylists(playlists);
 
-        const history = loadHistory();
+        const history = await loadHistory();
         delete history[targetUser];
         for (const user of Object.keys(history)) {
             history[user] = history[user].filter(h => !userVideos.includes(h.filename));
             if (history[user].length === 0) delete history[user];
         }
-        saveHistory(history);
+        await saveHistory(history);
 
-        const reports = loadReports();
+        const reports = await loadReports();
         const filteredReports = reports.filter(r => r.reportedBy !== targetUser && !userVideos.includes(r.filename));
         if (filteredReports.length !== reports.length) {
-            saveReports(filteredReports);
+            await saveReports(filteredReports);
         }
 
         delete users[targetUser];
-        saveUsers(users);
+        await saveUsers(users);
 
         console.log(`[ADMIN] ${req.session.userId} deleted user ${targetUser} with ${userVideos.length} videos`);
         res.json({ success: true, deletedVideos: userVideos.length });
@@ -2033,12 +2050,12 @@ app.delete("/api/admin/user/:username", requireAuth, requireAdmin, adminRateLimi
     }
 });
 
-app.delete("/api/admin/video/:filename", requireAuth, requireAdmin, adminRateLimit, csrfProtection, (req, res) => {
+app.delete("/api/admin/video/:filename", requireAuth, requireAdmin, adminRateLimit, csrfProtection, async (req, res) => {
     try {
         if (!isValidFilename(req.params.filename)) {
             return res.status(400).json({ success: false, error: "無効なファイル名です" });
         }
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         const filename = req.params.filename;
 
         if (!metadata[filename]) {
@@ -2046,39 +2063,39 @@ app.delete("/api/admin/video/:filename", requireAuth, requireAdmin, adminRateLim
         }
 
         const filePath = path.join(uploadDir, filename);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        try { await fsp.unlink(filePath); } catch {}
         const videoHlsDir = path.join(hlsDir, filename);
-        if (fs.existsSync(videoHlsDir)) fs.rmSync(videoHlsDir, { recursive: true, force: true });
+        try { await fsp.rm(videoHlsDir, { recursive: true, force: true }); } catch {}
 
         delete metadata[filename];
-        saveMetadata(metadata);
+        await saveMetadata(metadata);
 
-        const comments = loadComments();
+        const comments = await loadComments();
         delete comments[filename];
-        saveComments(comments);
+        await saveComments(comments);
 
-        const views = loadViews();
+        const views = await loadViews();
         delete views[filename];
-        saveViews(views);
+        await saveViews(views);
 
-        const bookmarks = loadBookmarks();
+        const bookmarks = await loadBookmarks();
         for (const user of Object.keys(bookmarks)) {
             const idx = bookmarks[user].indexOf(filename);
             if (idx !== -1) bookmarks[user].splice(idx, 1);
         }
-        saveBookmarks(bookmarks);
+        await saveBookmarks(bookmarks);
 
-        const history = loadHistory();
+        const history = await loadHistory();
         for (const user of Object.keys(history)) {
             history[user] = history[user].filter(h => h.filename !== filename);
             if (history[user].length === 0) delete history[user];
         }
-        saveHistory(history);
+        await saveHistory(history);
 
-        const reports = loadReports();
+        const reports = await loadReports();
         const remainingReports = reports.filter(r => r.filename !== filename);
         if (remainingReports.length !== reports.length) {
-            saveReports(remainingReports);
+            await saveReports(remainingReports);
         }
 
         console.log(`[ADMIN] ${req.session.userId} deleted video ${filename}`);
@@ -2089,9 +2106,9 @@ app.delete("/api/admin/video/:filename", requireAuth, requireAdmin, adminRateLim
     }
 });
 
-app.delete("/api/admin/video/:filename/comment/:id", requireAuth, requireAdmin, adminRateLimit, csrfProtection, (req, res) => {
+app.delete("/api/admin/video/:filename/comment/:id", requireAuth, requireAdmin, adminRateLimit, csrfProtection, async (req, res) => {
     try {
-        const comments = loadComments();
+        const comments = await loadComments();
         const list = comments[req.params.filename];
         if (!list) {
             return res.status(404).json({ success: false, error: "コメントが見つかりません" });
@@ -2104,7 +2121,7 @@ app.delete("/api/admin/video/:filename/comment/:id", requireAuth, requireAdmin, 
 
         const removed = list.splice(idx, 1)[0];
         if (list.length === 0) delete comments[req.params.filename];
-        saveComments(comments);
+        await saveComments(comments);
 
         console.log(`[ADMIN] ${req.session.userId} deleted comment ${req.params.id} by ${removed.username} on ${req.params.filename}`);
         res.json({ success: true });
@@ -2114,9 +2131,9 @@ app.delete("/api/admin/video/:filename/comment/:id", requireAuth, requireAdmin, 
     }
 });
 
-app.get("/api/admin/reports", requireAuth, requireAdmin, adminRateLimit, (req, res) => {
+app.get("/api/admin/reports", requireAuth, requireAdmin, adminRateLimit, async (req, res) => {
     try {
-        const reports = loadReports();
+        const reports = await loadReports();
         const list = [...reports].reverse();
         res.json({ success: true, reports: list, total: list.length });
     } catch (err) {
@@ -2125,15 +2142,15 @@ app.get("/api/admin/reports", requireAuth, requireAdmin, adminRateLimit, (req, r
     }
 });
 
-app.delete("/api/admin/report/:id", requireAuth, requireAdmin, adminRateLimit, csrfProtection, (req, res) => {
+app.delete("/api/admin/report/:id", requireAuth, requireAdmin, adminRateLimit, csrfProtection, async (req, res) => {
     try {
-        const reports = loadReports();
+        const reports = await loadReports();
         const idx = reports.findIndex(r => r.id === req.params.id);
         if (idx === -1) {
             return res.status(404).json({ success: false, error: "通報が見つかりません" });
         }
         const removed = reports.splice(idx, 1)[0];
-        saveReports(reports);
+        await saveReports(reports);
         console.log(`[ADMIN] ${req.session.userId} dismissed report ${req.params.id} for ${removed.filename}`);
         res.json({ success: true });
     } catch (err) {
@@ -2144,7 +2161,7 @@ app.delete("/api/admin/report/:id", requireAuth, requireAdmin, adminRateLimit, c
 
 // --- Playlist API ---
 
-app.post("/api/playlists", requireAuth, csrfProtection, (req, res) => {
+app.post("/api/playlists", requireAuth, csrfProtection, async (req, res) => {
     try {
         const { title, description, isPublic } = req.body;
         if (!title || !title.trim()) {
@@ -2157,7 +2174,7 @@ app.post("/api/playlists", requireAuth, csrfProtection, (req, res) => {
             return res.status(400).json({ success: false, error: "説明文は500文字以内で入力してください" });
         }
 
-        const playlists = loadPlaylists();
+        const playlists = await loadPlaylists();
         const id = crypto.randomUUID();
         playlists[id] = {
             id,
@@ -2169,7 +2186,7 @@ app.post("/api/playlists", requireAuth, csrfProtection, (req, res) => {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
-        savePlaylists(playlists);
+        await savePlaylists(playlists);
         res.json({ success: true, playlist: playlists[id] });
     } catch (err) {
         console.error(err);
@@ -2177,9 +2194,9 @@ app.post("/api/playlists", requireAuth, csrfProtection, (req, res) => {
     }
 });
 
-app.get("/api/playlists", requireAuth, (req, res) => {
+app.get("/api/playlists", requireAuth, async (req, res) => {
     try {
-        const playlists = loadPlaylists();
+        const playlists = await loadPlaylists();
         const userPlaylists = Object.values(playlists)
             .filter(p => p.username === req.session.userId)
             .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -2190,9 +2207,9 @@ app.get("/api/playlists", requireAuth, (req, res) => {
     }
 });
 
-app.get("/api/playlists/:id", (req, res) => {
+app.get("/api/playlists/:id", async (req, res) => {
     try {
-        const playlists = loadPlaylists();
+        const playlists = await loadPlaylists();
         const playlist = playlists[req.params.id];
         if (!playlist) {
             return res.status(404).json({ success: false, error: "プレイリストが見つかりません" });
@@ -2201,30 +2218,30 @@ app.get("/api/playlists/:id", (req, res) => {
             return res.status(403).json({ success: false, error: "このプレイリストは非公開です" });
         }
 
-        const metadata = loadMetadata();
-        const files = readVideoFiles();
-        const bookmarks = loadBookmarks();
+        const metadata = await loadMetadata();
+        const files = await readVideoFiles();
+        const bookmarks = await loadBookmarks();
         const userBookmarks = bookmarks[req.session.userId] || [];
 
-        const videos = playlist.videoFilenames
-            .filter(file => files.includes(file) && metadata[file])
-            .map(file => {
-                const meta = metadata[file] || {};
-                return {
-                    name: file,
-                    url: getVideoUrl(file, meta),
-                    title: meta.title || file,
-                    description: meta.description || "",
-                    tags: meta.tags || [],
-                    uploadedBy: meta.uploadedBy || null,
-                    likes: meta.likes?.length || 0,
-                    likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
-                    bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
-                    views: meta.views || 0,
-                    thumbnailUrl: getVideoThumbnailUrl(file),
-                    duration: meta.duration || 0
-                };
+        const videos = [];
+        for (const file of playlist.videoFilenames) {
+            if (!files.includes(file) || !metadata[file]) continue;
+            const meta = metadata[file] || {};
+            videos.push({
+                name: file,
+                url: getVideoUrl(file, meta),
+                title: meta.title || file,
+                description: meta.description || "",
+                tags: meta.tags || [],
+                uploadedBy: meta.uploadedBy || null,
+                likes: meta.likes?.length || 0,
+                likedByUser: req.session.userId && meta.likes?.includes(req.session.userId) || false,
+                bookmarkedByUser: req.session.userId && userBookmarks.includes(file) || false,
+                views: meta.views || 0,
+                thumbnailUrl: await getVideoThumbnailUrl(file),
+                duration: meta.duration || 0
             });
+        }
 
         res.json({
             success: true,
@@ -2240,9 +2257,9 @@ app.get("/api/playlists/:id", (req, res) => {
     }
 });
 
-app.patch("/api/playlists/:id", requireAuth, csrfProtection, (req, res) => {
+app.patch("/api/playlists/:id", requireAuth, csrfProtection, async (req, res) => {
     try {
-        const playlists = loadPlaylists();
+        const playlists = await loadPlaylists();
         const playlist = playlists[req.params.id];
         if (!playlist) {
             return res.status(404).json({ success: false, error: "プレイリストが見つかりません" });
@@ -2271,7 +2288,7 @@ app.patch("/api/playlists/:id", requireAuth, csrfProtection, (req, res) => {
             playlist.isPublic = !!isPublic;
         }
         playlist.updatedAt = new Date().toISOString();
-        savePlaylists(playlists);
+        await savePlaylists(playlists);
         res.json({ success: true, playlist });
     } catch (err) {
         console.error(err);
@@ -2279,9 +2296,9 @@ app.patch("/api/playlists/:id", requireAuth, csrfProtection, (req, res) => {
     }
 });
 
-app.delete("/api/playlists/:id", requireAuth, csrfProtection, (req, res) => {
+app.delete("/api/playlists/:id", requireAuth, csrfProtection, async (req, res) => {
     try {
-        const playlists = loadPlaylists();
+        const playlists = await loadPlaylists();
         const playlist = playlists[req.params.id];
         if (!playlist) {
             return res.status(404).json({ success: false, error: "プレイリストが見つかりません" });
@@ -2290,7 +2307,7 @@ app.delete("/api/playlists/:id", requireAuth, csrfProtection, (req, res) => {
             return res.status(403).json({ success: false, error: "自分のプレイリストのみ削除できます" });
         }
         delete playlists[req.params.id];
-        savePlaylists(playlists);
+        await savePlaylists(playlists);
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -2298,19 +2315,19 @@ app.delete("/api/playlists/:id", requireAuth, csrfProtection, (req, res) => {
     }
 });
 
-app.post("/api/playlists/:id/videos", requireAuth, csrfProtection, (req, res) => {
+app.post("/api/playlists/:id/videos", requireAuth, csrfProtection, async (req, res) => {
     try {
         const { filename } = req.body;
         if (!filename) {
             return res.status(400).json({ success: false, error: "動画が指定されていません" });
         }
 
-        const metadata = loadMetadata();
+        const metadata = await loadMetadata();
         if (!metadata[filename]) {
             return res.status(404).json({ success: false, error: "動画が見つかりません" });
         }
 
-        const playlists = loadPlaylists();
+        const playlists = await loadPlaylists();
         const playlist = playlists[req.params.id];
         if (!playlist) {
             return res.status(404).json({ success: false, error: "プレイリストが見つかりません" });
@@ -2322,7 +2339,7 @@ app.post("/api/playlists/:id/videos", requireAuth, csrfProtection, (req, res) =>
         if (!playlist.videoFilenames.includes(filename)) {
             playlist.videoFilenames.push(filename);
             playlist.updatedAt = new Date().toISOString();
-            savePlaylists(playlists);
+            await savePlaylists(playlists);
         }
 
         res.json({ success: true, playlist });
@@ -2332,9 +2349,9 @@ app.post("/api/playlists/:id/videos", requireAuth, csrfProtection, (req, res) =>
     }
 });
 
-app.delete("/api/playlists/:id/videos/:filename", requireAuth, csrfProtection, (req, res) => {
+app.delete("/api/playlists/:id/videos/:filename", requireAuth, csrfProtection, async (req, res) => {
     try {
-        const playlists = loadPlaylists();
+        const playlists = await loadPlaylists();
         const playlist = playlists[req.params.id];
         if (!playlist) {
             return res.status(404).json({ success: false, error: "プレイリストが見つかりません" });
@@ -2347,7 +2364,7 @@ app.delete("/api/playlists/:id/videos/:filename", requireAuth, csrfProtection, (
         if (idx !== -1) {
             playlist.videoFilenames.splice(idx, 1);
             playlist.updatedAt = new Date().toISOString();
-            savePlaylists(playlists);
+            await savePlaylists(playlists);
         }
 
         res.json({ success: true });
@@ -2357,29 +2374,30 @@ app.delete("/api/playlists/:id/videos/:filename", requireAuth, csrfProtection, (
     }
 });
 
-app.get("/api/playlists/public/:username", (req, res) => {
+app.get("/api/playlists/public/:username", async (req, res) => {
     try {
-        const playlists = loadPlaylists();
+        const playlists = await loadPlaylists();
         const userPlaylists = Object.values(playlists)
             .filter(p => p.username === req.params.username && p.isPublic)
             .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
-        const result = userPlaylists.map(p => {
-            const metadata = loadMetadata();
-            const files = readVideoFiles();
+        const result = [];
+        for (const p of userPlaylists) {
+            const metadata = await loadMetadata();
+            const files = await readVideoFiles();
             const validVideos = p.videoFilenames.filter(f => files.includes(f) && metadata[f]);
             const firstVideo = validVideos.length > 0 ? metadata[validVideos[0]] : null;
-            return {
+            result.push({
                 id: p.id,
                 title: p.title,
                 description: p.description,
                 username: p.username,
                 videoCount: validVideos.length,
-                firstVideoThumbnail: validVideos.length > 0 ? getVideoThumbnailUrl(validVideos[0]) : null,
+                firstVideoThumbnail: validVideos.length > 0 ? await getVideoThumbnailUrl(validVideos[0]) : null,
                 createdAt: p.createdAt,
                 updatedAt: p.updatedAt
-            };
-        });
+            });
+        }
 
         res.json({ success: true, playlists: result });
     } catch (err) {
@@ -2388,11 +2406,11 @@ app.get("/api/playlists/public/:username", (req, res) => {
     }
 });
 
-app.get("/watch", (req, res) => {
+app.get("/watch", async (req, res) => {
     res.redirect("/");
 });
 
-app.get("/watch/*", (req, res) => {
+app.get("/watch/*", async (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 

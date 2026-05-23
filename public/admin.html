@@ -679,7 +679,7 @@ function escapeHtml(str) {
     return d.innerHTML;
 }
 function escapeJs(str) {
-    return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "\\\"").replace(/</g, "\\x3C").replace(/>/g, "\\x3E");
+    return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "\\\"").replace(/`/g, "\\`").replace(/</g, "\\x3C").replace(/>/g, "\\x3E");
 }
 
 init();

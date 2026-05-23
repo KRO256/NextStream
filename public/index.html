@@ -2169,7 +2169,7 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 function escapeJs(str) {
-    return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "\\\"").replace(/</g, "\\x3C").replace(/>/g, "\\x3E");
+    return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "\\\"").replace(/`/g, "\\`").replace(/</g, "\\x3C").replace(/>/g, "\\x3E");
 }
 
 function formatDuration(seconds) {
@@ -4453,7 +4453,7 @@ async function toggleVideoInPlaylist(playlistId, filename, add, el) {
             });
         }
         const filename2 = document.getElementById("addToPlaylistDropdown").dataset.filename;
-        openAddToPlaylistDropdown(document.querySelector('.addToPlaylistBtn[data-filename="' + escapeHtml(filename2) + '"]') || document.querySelector('[onclick*="' + escapeHtml(filename2) + '"]'), filename2);
+        openAddToPlaylistDropdown(document.querySelector('.addToPlaylistBtn[data-filename="' + escapeHtml(filename2) + '"]'), filename2);
     } catch (e) {
         console.error(e);
         alert("エラーが発生しました");
